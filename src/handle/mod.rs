@@ -12,14 +12,14 @@ pub mod npm;
 pub mod pacman;
 pub mod pip;
 
-pub(super) trait Render {
+pub(super) trait Reader {
     /// 参数输出到文件时的格式
     fn new_config(&self) -> Result<String>;
 }
 
 /// 镜像源配置接口
 pub(super) trait MirrorConfigurate {
-    type R: Render;
+    type R: Reader;
     ///
     /// 解析命令行参数
     ///
@@ -52,46 +52,4 @@ pub(super) trait MirrorConfigurate {
     /// 测试镜像源
     ///
     fn test_mirror(&self, mirror: Self::R) -> bool;
-}
-
-pub(crate) struct MirrorConfigurator<T: MirrorConfigurate> {
-    configurate: T,
-}
-
-impl<T: MirrorConfigurate> MirrorConfigurator<T> {
-    pub fn new(configurate: T) -> Self {
-        Self { configurate }
-    }
-}
-
-impl<T: MirrorConfigurate> MirrorConfigurate for MirrorConfigurator<T> {
-    type R = T::R;
-    fn parse_args(&self) -> Vec<Arg> {
-        self.configurate.parse_args()
-    }
-    fn name(&self) -> &'static str {
-        self.configurate.name()
-    }
-    fn current_mirror(&self) -> Option<Self::R> {
-        self.configurate.current_mirror()
-    }
-    fn get_mirrors(&self) -> Vec<Self::R> {
-        self.configurate.get_mirrors()
-    }
-
-    fn set_mirror(&self, args: &clap::ArgMatches) {
-        self.configurate.set_mirror(args)
-    }
-
-    fn remove_mirror(&self, mirror: Self::R) {
-        self.configurate.remove_mirror(mirror)
-    }
-
-    fn reset_mirrors(&self) {
-        self.configurate.reset_mirrors()
-    }
-
-    fn test_mirror(&self, mirror: Self::R) -> bool {
-        self.configurate.test_mirror(mirror)
-    }
 }

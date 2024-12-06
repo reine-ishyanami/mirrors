@@ -8,7 +8,7 @@ use process_arg_derive::ProcessArg;
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, sync::LazyLock};
 
-use super::{MirrorConfigurate, Render};
+use super::{MirrorConfigurate, Reader};
 
 static DEFAULT_PIP_HOME: LazyLock<PathBuf> = LazyLock::new(|| {
     if cfg!(target_os = "windows") {
@@ -38,7 +38,7 @@ impl PipMirror {
     }
 }
 
-impl Render for PipMirror {
+impl Reader for PipMirror {
     fn new_config(&self) -> Result<String> {
         let str = match old_config() {
             Ok(conf) => {
@@ -58,7 +58,7 @@ impl Render for PipMirror {
     }
 }
 
-#[derive(ProcessArg)]
+#[derive(ProcessArg, Clone, Copy)]
 pub(crate) struct PipPackageManager {}
 
 impl MirrorConfigurate for PipPackageManager {
@@ -148,7 +148,7 @@ fn profile_path() -> PathBuf {
 
 #[cfg(test)]
 mod tests {
-    use super::{PipMirror, Render};
+    use super::{PipMirror, Reader};
 
     #[test]
     fn test_gen() {

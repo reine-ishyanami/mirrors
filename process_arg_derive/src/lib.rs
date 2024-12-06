@@ -12,8 +12,9 @@ pub fn process_macro_derive(input: TokenStream) -> TokenStream {
 
 fn impl_process_macro(ast: &DeriveInput) -> TokenStream {
     let name = &ast.ident;
+    let generics = &ast.generics;
     let gen = quote! {
-        impl ProcessArg for #name {
+        impl  ProcessArg<#generics> for #name {
             fn process(&self, subcs: &clap::ArgMatches) {
                 match subcs.subcommand() {
                     Some(("config", args)) => {

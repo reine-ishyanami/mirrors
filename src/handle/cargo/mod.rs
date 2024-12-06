@@ -8,7 +8,7 @@ use process_arg_derive::ProcessArg;
 use serde::{Deserialize, Serialize};
 use toml::Value;
 
-use super::{MirrorConfigurate, Render};
+use super::{MirrorConfigurate, Reader};
 use std::{collections::HashMap, env, path::PathBuf, sync::LazyLock};
 
 static DEFAULT_CARGO_HOME: LazyLock<PathBuf> = LazyLock::new(|| {
@@ -30,7 +30,7 @@ impl CargoMirror {
     }
 }
 
-impl Render for CargoMirror {
+impl Reader for CargoMirror {
     fn new_config(&self) -> Result<String> {
         if let Ok(toml) = old_config() {
             if let Ok(mut old) = toml::from_str::<CargoConfig>(&toml) {
@@ -61,7 +61,7 @@ impl Render for CargoMirror {
     }
 }
 
-#[derive(ProcessArg)]
+#[derive(ProcessArg, Clone, Copy)]
 pub(crate) struct CargoPackageManager {}
 
 impl MirrorConfigurate for CargoPackageManager {

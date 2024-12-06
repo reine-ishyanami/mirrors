@@ -8,7 +8,7 @@ use process_arg_derive::ProcessArg;
 
 use std::{env, path::PathBuf, sync::LazyLock, vec};
 
-use super::{MirrorConfigurate, Render};
+use super::{MirrorConfigurate, Reader};
 
 static DEFAULT_M2_HOME: LazyLock<PathBuf> = LazyLock::new(|| {
     let home = dirs::home_dir().unwrap();
@@ -30,7 +30,7 @@ impl MavenMirror {
     }
 }
 
-impl Render for MavenMirror {
+impl Reader for MavenMirror {
     fn new_config(&self) -> Result<String> {
         let str = match old_config() {
             Ok(xml) => {
@@ -73,7 +73,7 @@ impl Render for MavenMirror {
     }
 }
 
-#[derive(ProcessArg)]
+#[derive(ProcessArg, Clone, Copy)]
 pub(crate) struct MavenPackageManager {}
 
 impl MirrorConfigurate for MavenPackageManager {
@@ -211,7 +211,7 @@ fn profile_path() -> PathBuf {
 
 #[cfg(test)]
 mod tests {
-    use super::{MavenMirror, Render};
+    use super::{MavenMirror, Reader};
 
     #[test]
     fn test_gen() {

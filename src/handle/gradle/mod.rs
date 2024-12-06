@@ -7,7 +7,7 @@ use std::env;
 use std::str::FromStr;
 use std::{path::PathBuf, sync::LazyLock};
 
-use super::{MirrorConfigurate, Render};
+use super::{MirrorConfigurate, Reader};
 
 static DEFAULT_CARGO_USER_HOME: LazyLock<PathBuf> = LazyLock::new(|| {
     let home = dirs::home_dir().unwrap();
@@ -33,7 +33,7 @@ impl GradleMirror {
     }
 }
 
-impl Render for GradleMirror {
+impl Reader for GradleMirror {
     fn new_config(&self) -> Result<String> {
         Ok(format!(
             include_str!("../../../templates/init.gradle.kts"),
@@ -56,7 +56,7 @@ impl Render for GradleMirror {
     }
 }
 
-#[derive(ProcessArg)]
+#[derive(ProcessArg, Clone, Copy)]
 pub(crate) struct GradlePackageManager {}
 
 impl MirrorConfigurate for GradlePackageManager {

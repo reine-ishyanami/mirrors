@@ -5,7 +5,7 @@ use process_arg_derive::ProcessArg;
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, sync::LazyLock};
 
-use super::{MirrorConfigurate, Render};
+use super::{MirrorConfigurate, Reader};
 
 static DEFAULT_NPM_HOME: LazyLock<PathBuf> = LazyLock::new(|| dirs::home_dir().unwrap());
 
@@ -20,7 +20,7 @@ impl NpmMirror {
     }
 }
 
-impl Render for NpmMirror {
+impl Reader for NpmMirror {
     fn new_config(&self) -> Result<String> {
         let str = match old_config() {
             Ok(properties) => {
@@ -48,7 +48,7 @@ impl Render for NpmMirror {
     }
 }
 
-#[derive(ProcessArg)]
+#[derive(ProcessArg, Clone, Copy)]
 pub(crate) struct NpmPackageManager {}
 
 impl MirrorConfigurate for NpmPackageManager {

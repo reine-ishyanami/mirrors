@@ -16,7 +16,7 @@ macro_rules! command {
             use clap::Command;
             use crate::handle::MirrorConfigurate;
 
-            clap::Command::new("mir")
+            let cmd = clap::Command::new("mir")
                 .about("Configure Package Manager Mirrors")
                 .subcommand_required(true)
                 .arg_required_else_help(true)
@@ -35,7 +35,26 @@ macro_rules! command {
                             .subcommand(Command::new("reset"))
                             .subcommand(Command::new("get")),
                     )
-                )*
+                )*;
+
+            match cmd.get_matches().subcommand() {
+                Some(("config", _)) => {}
+                Some(("list", _)) => {}
+                Some(("reset", _)) => {}
+                Some((cmd, arg)) => {
+                    let mut matched = false;
+                    $(
+                        if cmd == $pm.name() {
+                            matched = true;
+                            $pm.process(arg)
+                        }
+                    )*
+                    if matched == false {
+                        println!("Unknown command: {}", cmd);
+                    }
+                }
+                None => {}
+            }
         }
     };
 }
@@ -46,20 +65,5 @@ pub(crate) fn process() {
     let gradle = GradlePackageManager {};
     let npm = NpmPackageManager {};
     let pip = PipPackageManager {};
-    let cmd = command!(cargo, mvn, gradle, npm, pip);
-
-    match cmd.get_matches().subcommand() {
-        Some(("config", _)) => {}
-        Some(("list", _)) => {}
-        Some(("reset", _)) => {}
-        Some(("cargo", arg)) => cargo.process(arg),
-        Some(("maven", arg)) => mvn.process(arg),
-        Some(("gradle", arg)) => gradle.process(arg),
-        Some(("npm", arg)) => npm.process(arg),
-        Some(("pip", arg)) => pip.process(arg),
-        Some((cmd, _)) => {
-            println!("Unknown command: {}", cmd);
-        }
-        None => {}
-    }
+    command!(cargo, mvn, gradle, npm, pip);
 }
