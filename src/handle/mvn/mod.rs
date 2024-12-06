@@ -1,6 +1,9 @@
 mod object;
 
-use crate::command::ProcessArg;
+use crate::{
+    command::ProcessArg,
+    utils::file_utils::{read_config, write_config},
+};
 use anyhow::Result;
 use clap::arg;
 use object::{Mirror, Mirrors};
@@ -10,12 +13,15 @@ use std::{env, path::PathBuf, sync::LazyLock, vec};
 
 use super::{MirrorConfigurate, Reader};
 
-static DEFAULT_M2_HOME: LazyLock<PathBuf> = LazyLock::new(|| {
-    let home = dirs::home_dir().unwrap();
-    home.join(".m2")
-});
-
 const ENV_NAME: &str = "M2_HOME";
+
+static DEFAULT_MAVEN_PROFILES: LazyLock<Vec<PathBuf>> = LazyLock::new(|| {
+    let profile_path = match env::var(ENV_NAME) {
+        Ok(value) => PathBuf::from(value),
+        Err(_) => dirs::home_dir().unwrap().join(".m2"),
+    };
+    vec![profile_path.join("settings.xml")]
+});
 
 pub(crate) type MavenMirror = Mirror;
 
@@ -32,8 +38,8 @@ impl MavenMirror {
 
 impl Reader for MavenMirror {
     fn new_config(&self) -> Result<String> {
-        let str = match old_config() {
-            Ok(xml) => {
+        let str = match read_config(DEFAULT_MAVEN_PROFILES.to_vec()) {
+            Ok((_, xml)) => {
                 let mut xml = xml;
                 // 截取 mirrors 部分进行反序列化
                 let start = xml.find("<mirrors>").unwrap_or_default();
@@ -100,8 +106,8 @@ impl MirrorConfigurate for MavenPackageManager {
     }
 
     fn current_mirror(&self) -> Option<MavenMirror> {
-        match old_config() {
-            Ok(xml) => {
+        match read_config(DEFAULT_MAVEN_PROFILES.to_vec()) {
+            Ok((_, xml)) => {
                 // 截取 mirrors 部分进行反序列化
                 let start = xml.find("<mirrors>").unwrap_or_default();
                 let end = xml.find("</mirrors>").unwrap_or_default() + "</mirrors>".len();
@@ -133,15 +139,12 @@ impl MirrorConfigurate for MavenPackageManager {
         let url = args.get_one::<String>("url").cloned().unwrap_or_default();
         let mirror = MavenMirror::new(id, name, mirror_of, url);
         if let Ok(xml) = mirror.new_config() {
-            if !xml.is_empty() {
-                let cargo_config_path = profile_path();
-                std::fs::write(cargo_config_path, xml).unwrap();
-            }
+            let _ = write_config(DEFAULT_MAVEN_PROFILES.to_vec(), &xml);
         }
     }
 
     fn remove_mirror(&self, mirror: MavenMirror) {
-        if let Ok(xml) = old_config() {
+        if let Ok((_, xml)) = read_config(DEFAULT_MAVEN_PROFILES.to_vec()) {
             let mut xml = xml;
             // 截取 mirrors 部分进行反序列化
             let start = xml.find("<mirrors>").unwrap_or_default();
@@ -157,16 +160,13 @@ impl MirrorConfigurate for MavenPackageManager {
                 let mut mirror_str = quick_xml::se::to_string(&mirrors).unwrap();
                 mirror_str = mirror_str.replace("Mirrors", "mirrors");
                 xml.insert_str(start, mirror_str.as_str());
-                if !xml.is_empty() {
-                    let cargo_config_path = profile_path();
-                    std::fs::write(cargo_config_path, xml).unwrap();
-                }
+                let _ = write_config(DEFAULT_MAVEN_PROFILES.to_vec(), &xml);
             }
         }
     }
 
     fn reset_mirrors(&self) {
-        if let Ok(xml) = old_config() {
+        if let Ok((_, xml)) = read_config(DEFAULT_MAVEN_PROFILES.to_vec()) {
             let mut xml = xml;
             // 截取 mirrors 部分进行反序列化
             let start = xml.find("<mirrors>").unwrap_or_default();
@@ -182,10 +182,7 @@ impl MirrorConfigurate for MavenPackageManager {
                 let mut mirror_str = quick_xml::se::to_string(&mirrors).unwrap();
                 mirror_str = mirror_str.replace("Mirrors", "mirrors");
                 xml.insert_str(start, mirror_str.as_str());
-                if !xml.is_empty() {
-                    let cargo_config_path = profile_path();
-                    std::fs::write(cargo_config_path, xml).unwrap();
-                }
+                let _ = write_config(DEFAULT_MAVEN_PROFILES.to_vec(), &xml);
             };
         }
     }
@@ -193,20 +190,6 @@ impl MirrorConfigurate for MavenPackageManager {
     fn test_mirror(&self, _mirror: MavenMirror) -> bool {
         todo!()
     }
-}
-
-fn old_config() -> Result<String> {
-    let config_path = profile_path();
-    let config = std::fs::read_to_string(&config_path)?;
-    Ok(config)
-}
-
-fn profile_path() -> PathBuf {
-    let mvn_home = match env::var(ENV_NAME) {
-        Ok(value) => PathBuf::from(value),
-        Err(_) => DEFAULT_M2_HOME.to_path_buf(),
-    };
-    mvn_home.join("settings.xml")
 }
 
 #[cfg(test)]

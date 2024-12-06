@@ -8,7 +8,7 @@ pub trait ProcessArg: MirrorConfigurate {
     fn process(&self, subcs: &clap::ArgMatches);
 }
 
-macro_rules! command {
+macro_rules! parse_command {
     (
         $( $pm:expr ),*
     ) => {
@@ -65,5 +65,5 @@ pub(crate) fn process() {
     let gradle = GradlePackageManager {};
     let npm = NpmPackageManager {};
     let pip = PipPackageManager {};
-    command!(cargo, mvn, gradle, npm, pip);
+    parse_command!(cargo, mvn, gradle, npm, pip);
 }

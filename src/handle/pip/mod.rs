@@ -10,12 +10,14 @@ use std::{path::PathBuf, sync::LazyLock};
 
 use super::{MirrorConfigurate, Reader};
 
-static DEFAULT_PIP_HOME: LazyLock<PathBuf> = LazyLock::new(|| {
-    if cfg!(target_os = "windows") {
-        dirs::config_dir().unwrap().join("pip")
+use crate::utils::file_utils::{read_config, write_config};
+
+static DEFAULT_PIP_PROFILES: LazyLock<Vec<PathBuf>> = LazyLock::new(|| {
+    vec![if cfg!(target_os = "windows") {
+        dirs::config_dir().unwrap().join("pip").join("pip.ini")
     } else {
-        dirs::home_dir().unwrap().join(".pip")
-    }
+        dirs::home_dir().unwrap().join(".pip").join("pip.conf")
+    }]
 });
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -40,8 +42,8 @@ impl PipMirror {
 
 impl Reader for PipMirror {
     fn new_config(&self) -> Result<String> {
-        let str = match old_config() {
-            Ok(conf) => {
+        let str = match read_config(DEFAULT_PIP_PROFILES.to_vec()) {
+            Ok((_, conf)) => {
                 let mut old: PipConfig = toml::from_str(&conf).unwrap();
                 old.global.index_url = self.url.clone();
                 old.install.trusted_host = self.host.clone();
@@ -72,7 +74,7 @@ impl MirrorConfigurate for PipPackageManager {
     }
 
     fn current_mirror(&self) -> Option<PipMirror> {
-        if let Ok(conf) = old_config() {
+        if let Ok((_, conf)) = read_config(DEFAULT_PIP_PROFILES.to_vec()) {
             if let Ok(old) = toml::from_str::<PipConfig>(&conf) {
                 return Some(PipMirror::new(old.global.index_url));
             }
@@ -89,39 +91,30 @@ impl MirrorConfigurate for PipPackageManager {
         let url = args.get_one::<String>("url").cloned().unwrap_or_default();
         let mirror = PipMirror::new(url);
         if let Ok(new_config) = mirror.new_config() {
-            if !new_config.is_empty() {
-                let cargo_config_path = profile_path();
-                std::fs::write(cargo_config_path, new_config).unwrap();
-            }
+            let _ = write_config(DEFAULT_PIP_PROFILES.to_vec(), &new_config);
         }
     }
 
     fn remove_mirror(&self, mirror: PipMirror) {
-        if let Ok(conf) = old_config() {
+        if let Ok((_, conf)) = read_config(DEFAULT_PIP_PROFILES.to_vec()) {
             if let Ok(mut old) = toml::from_str::<PipConfig>(&conf) {
                 if old.global.index_url == mirror.url {
                     old.global.index_url = "".to_string();
                     old.install.trusted_host = "".to_string();
                 }
                 let new_config = toml::to_string(&old).unwrap();
-                if !new_config.is_empty() {
-                    let cargo_config_path = profile_path();
-                    std::fs::write(cargo_config_path, new_config).unwrap();
-                }
+                let _ = write_config(DEFAULT_PIP_PROFILES.to_vec(), &new_config);
             }
         }
     }
 
     fn reset_mirrors(&self) {
-        if let Ok(conf) = old_config() {
+        if let Ok((_, conf)) = read_config(DEFAULT_PIP_PROFILES.to_vec()) {
             if let Ok(mut old) = toml::from_str::<PipConfig>(&conf) {
                 old.global.index_url = "".to_string();
                 old.install.trusted_host = "".to_string();
-                let new_config = toml::to_string(&old).unwrap();
-                if !new_config.is_empty() {
-                    let cargo_config_path = profile_path();
-                    std::fs::write(cargo_config_path, new_config).unwrap();
-                }
+                let conf = toml::to_string(&old).unwrap();
+                let _ = write_config(DEFAULT_PIP_PROFILES.to_vec(), &conf);
             }
         }
     }
@@ -129,21 +122,6 @@ impl MirrorConfigurate for PipPackageManager {
     fn test_mirror(&self, _mirror: PipMirror) -> bool {
         todo!()
     }
-}
-
-fn old_config() -> Result<String> {
-    let config_path = profile_path();
-    let config = std::fs::read_to_string(&config_path)?;
-    Ok(config)
-}
-
-fn profile_path() -> PathBuf {
-    let mvn_home = DEFAULT_PIP_HOME.to_path_buf();
-    mvn_home.join(if cfg!(target_os = "windows") {
-        "pip.ini"
-    } else {
-        "pip.conf"
-    })
 }
 
 #[cfg(test)]

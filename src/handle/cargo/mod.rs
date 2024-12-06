@@ -1,6 +1,9 @@
 mod object;
 
-use crate::command::ProcessArg;
+use crate::{
+    command::ProcessArg,
+    utils::file_utils::{read_config, write_config},
+};
 use anyhow::Result;
 use clap::arg;
 use object::CargoConfig;
@@ -11,9 +14,12 @@ use toml::Value;
 use super::{MirrorConfigurate, Reader};
 use std::{collections::HashMap, env, path::PathBuf, sync::LazyLock};
 
-static DEFAULT_CARGO_HOME: LazyLock<PathBuf> = LazyLock::new(|| {
-    let home = dirs::home_dir().unwrap();
-    home.join(".cargo")
+static DEFAULT_CARGO_PROFILES: LazyLock<Vec<PathBuf>> = LazyLock::new(|| {
+    let profile_path = match env::var(ENV_NAME) {
+        Ok(value) => PathBuf::from(value),
+        Err(_) => dirs::home_dir().unwrap().join(".cargo"),
+    };
+    vec![profile_path.join("config.toml")]
 });
 
 const ENV_NAME: &str = "CARGO_HOME";
@@ -32,7 +38,7 @@ impl CargoMirror {
 
 impl Reader for CargoMirror {
     fn new_config(&self) -> Result<String> {
-        if let Ok(toml) = old_config() {
+        if let Ok((_, toml)) = read_config(DEFAULT_CARGO_PROFILES.to_vec()) {
             if let Ok(mut old) = toml::from_str::<CargoConfig>(&toml) {
                 old.source.insert(
                     self.name.clone(),
@@ -78,7 +84,7 @@ impl MirrorConfigurate for CargoPackageManager {
     }
 
     fn current_mirror(&self) -> Option<CargoMirror> {
-        if let Ok(toml) = old_config() {
+        if let Ok((_, toml)) = read_config(DEFAULT_CARGO_PROFILES.to_vec()) {
             if let Ok(old) = toml::from_str::<CargoConfig>(&toml) {
                 let name = old
                     .source
@@ -113,16 +119,13 @@ impl MirrorConfigurate for CargoPackageManager {
         let name = args.get_one::<String>("name").cloned().unwrap_or_default();
         let url = args.get_one::<String>("url").cloned().unwrap_or_default();
         let mirror = CargoMirror::new(name, url);
-        if let Ok(new_config) = mirror.new_config() {
-            if !new_config.is_empty() {
-                let cargo_config_path = profile_path();
-                std::fs::write(cargo_config_path, new_config).unwrap();
-            }
+        if let Ok(toml) = mirror.new_config() {
+            let _ = write_config(DEFAULT_CARGO_PROFILES.to_vec(), &toml);
         }
     }
 
     fn remove_mirror(&self, mirror: CargoMirror) {
-        if let Ok(toml) = old_config() {
+        if let Ok((_, toml)) = read_config(DEFAULT_CARGO_PROFILES.to_vec()) {
             if let Ok(mut old) = toml::from_str::<CargoConfig>(&toml) {
                 let name = old
                     .source
@@ -138,17 +141,14 @@ impl MirrorConfigurate for CargoPackageManager {
                 }
                 old.source.remove(&mirror.name);
                 old.registries.remove(&mirror.name);
-                let new_config = toml::to_string(&old).unwrap();
-                if !new_config.is_empty() {
-                    let cargo_config_path = profile_path();
-                    std::fs::write(cargo_config_path, new_config).unwrap();
-                }
+                let toml = toml::to_string(&old).unwrap();
+                let _ = write_config(DEFAULT_CARGO_PROFILES.to_vec(), &toml);
             }
         }
     }
 
     fn reset_mirrors(&self) {
-        if let Ok(toml) = old_config() {
+        if let Ok((_, toml)) = read_config(DEFAULT_CARGO_PROFILES.to_vec()) {
             if let Ok(mut old) = toml::from_str::<CargoConfig>(&toml) {
                 let new_source = old
                     .source
@@ -161,11 +161,8 @@ impl MirrorConfigurate for CargoPackageManager {
                     .unwrap();
                 old.source = HashMap::from([("crates-io".into(), new_source)]);
                 old.registries.clear();
-                let new_config = toml::to_string(&old).unwrap();
-                if !new_config.is_empty() {
-                    let cargo_config_path = profile_path();
-                    std::fs::write(cargo_config_path, new_config).unwrap();
-                }
+                let toml = toml::to_string(&old).unwrap();
+                let _ = write_config(DEFAULT_CARGO_PROFILES.to_vec(), &toml);
             }
         }
     }
@@ -173,20 +170,6 @@ impl MirrorConfigurate for CargoPackageManager {
     fn test_mirror(&self, _mirror: CargoMirror) -> bool {
         todo!()
     }
-}
-
-fn old_config() -> Result<String> {
-    let cargo_config_path = profile_path();
-    let cargo_config = std::fs::read_to_string(&cargo_config_path)?;
-    Ok(cargo_config)
-}
-
-fn profile_path() -> PathBuf {
-    let cargo_home = match env::var(ENV_NAME) {
-        Ok(value) => PathBuf::from(value),
-        Err(_) => DEFAULT_CARGO_HOME.to_path_buf(),
-    };
-    cargo_home.join("config.toml")
 }
 
 #[cfg(test)]

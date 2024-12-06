@@ -1,4 +1,5 @@
 use crate::command::ProcessArg;
+use crate::utils::file_utils::{read_config, write_config};
 use anyhow::Result;
 use clap::arg;
 use process_arg_derive::ProcessArg;
@@ -9,12 +10,15 @@ use std::{path::PathBuf, sync::LazyLock};
 
 use super::{MirrorConfigurate, Reader};
 
-static DEFAULT_CARGO_USER_HOME: LazyLock<PathBuf> = LazyLock::new(|| {
-    let home = dirs::home_dir().unwrap();
-    home.join(".gradle")
-});
-
 const ENV_NAME: &str = "GRADLE_USER_HOME";
+
+static DEFAULT_GRADLE_PROFILES: LazyLock<Vec<PathBuf>> = LazyLock::new(|| {
+    let profile_path = match env::var(ENV_NAME) {
+        Ok(value) => PathBuf::from(value),
+        Err(_) => dirs::home_dir().unwrap().join(".gradle"),
+    };
+    vec![profile_path.join("init.gradle.kts")]
+});
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub(crate) struct GradleMirror {
@@ -80,8 +84,8 @@ impl MirrorConfigurate for GradlePackageManager {
     }
 
     fn current_mirror(&self) -> Option<GradleMirror> {
-        match old_config() {
-            Ok(kts) => {
+        match read_config(DEFAULT_GRADLE_PROFILES.to_vec()) {
+            Ok((_, kts)) => {
                 let lines = kts.lines();
                 let mut maven = String::from_str("https://repo.maven.apache.org/maven2").unwrap();
                 let mut android =
@@ -149,10 +153,7 @@ impl MirrorConfigurate for GradlePackageManager {
             .unwrap_or_default();
         let mirror = GradleMirror::new(maven, android, plugins);
         if let Ok(kts) = mirror.new_config() {
-            if !kts.is_empty() {
-                let cargo_config_path = profile_path();
-                std::fs::write(cargo_config_path, kts).unwrap();
-            }
+            let _ = write_config(DEFAULT_GRADLE_PROFILES.to_vec(), &kts);
         }
     }
 
@@ -163,29 +164,12 @@ impl MirrorConfigurate for GradlePackageManager {
     }
 
     fn reset_mirrors(&self) {
-        let config_path = profile_path();
-        if config_path.exists() {
-            std::fs::remove_file(config_path).unwrap();
-        }
+        let _ = write_config(DEFAULT_GRADLE_PROFILES.to_vec(), "");
     }
 
     fn test_mirror(&self, _mirror: GradleMirror) -> bool {
         todo!()
     }
-}
-
-fn old_config() -> Result<String> {
-    let config_path = profile_path();
-    let config = std::fs::read_to_string(&config_path)?;
-    Ok(config)
-}
-
-fn profile_path() -> PathBuf {
-    let mvn_home = match env::var(ENV_NAME) {
-        Ok(value) => PathBuf::from(value),
-        Err(_) => DEFAULT_CARGO_USER_HOME.to_path_buf(),
-    };
-    mvn_home.join("init.gradle.kts")
 }
 
 #[cfg(test)]
