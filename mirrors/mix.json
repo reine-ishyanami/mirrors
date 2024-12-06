@@ -1,0 +1,24 @@
+{
+    "apt": {},
+    "cargo": {
+        "name": "rsproxy",
+        "url": "https://rsproxy.cn/crates.io-index"
+    },
+    "docker": {},
+    "gradle": {
+        "maven": "https://maven.aliyun.com/repository/public",
+        "android": "https://maven.aliyun.com/repository/public",
+        "plugins": "https://maven.aliyun.com/repository/gradle-plugin"
+    },
+    "mvn": {
+        "id": "ali",
+        "name": "aliyun maven",
+        "mirrorOf": "*",
+        "url": "https://maven.aliyun.com/repository/public"
+    },
+    "npm": {
+        "url": "https://registry.npmmirror.com"
+    },
+    "pip": {},
+    "pacman": {}
+}

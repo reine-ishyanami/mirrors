@@ -1,0 +1,8 @@
+[source.crates-io]
+replace-with = "{}"
+
+[source.{}]
+registry = "{}"
+
+[registries.{}]
+index = "{}"

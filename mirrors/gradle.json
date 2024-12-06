@@ -1,0 +1,7 @@
+[
+    {
+        "maven": "https://maven.aliyun.com/repository/public",
+        "android": "https://maven.aliyun.com/repository/public",
+        "plugins": "https://maven.aliyun.com/repository/gradle-plugin"
+    }
+]

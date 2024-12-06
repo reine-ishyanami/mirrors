@@ -1,0 +1,21 @@
+[package]
+name = "mirrors"
+version = "0.1.0"
+edition = "2021"
+repository = "https://github.com/reine-ishyanami/mirrors.git"
+
+[dependencies]
+process_arg_derive = { path = "process_arg_derive" }
+anyhow = "1.0.93"
+clap = { version = "4.5.21", features = ["derive"] }
+dirs = "5.0.1"
+quick-xml = { version = "0.37.1", features = ["serialize"] }
+serde = { version = "1.0.215", features = ["derive"] }
+serde-value = "0.7.0"
+serde_json = "1.0.133"
+toml = "0.8.19"
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
