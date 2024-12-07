@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(super) struct Mirrors {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub(super) mirror: Vec<Mirror>,
 }
 

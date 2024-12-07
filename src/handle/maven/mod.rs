@@ -71,9 +71,16 @@ impl Reader for MavenMirror {
                     (start, mirror_str)
                 } else {
                     let mirrors_xml = &xml[start..end];
-                    let mut mirrors: Mirrors = quick_xml::de::from_str(mirrors_xml).unwrap();
+                    let mut mirrors: Mirrors =
+                        if let Ok(mirrors) = quick_xml::de::from_str(mirrors_xml) {
+                            mirrors
+                        } else {
+                            Mirrors { mirror: vec![] }
+                        };
                     // 删除原来的 mirrors 部分
                     xml.replace_range(start..end, "");
+                    // 先删除与当前插入id相同的mirror，再插入新的mirror
+                    mirrors.mirror.retain(|m| m.id != self.id);
                     mirrors.mirror.insert(0, self.clone());
 
                     let mut mirror_str = quick_xml::se::to_string(&mirrors).unwrap();
@@ -185,17 +192,12 @@ impl MirrorConfigurate for MavenPackageManager {
             // 截取 mirrors 部分进行反序列化
             let start = xml.find("<mirrors>").unwrap_or_default();
             let end = xml.find("</mirrors>").unwrap_or_default() + "</mirrors>".len();
-            // 如果没有 mirrors 段
+            // 如果有 mirrors 段
             if start > 0 {
-                let mirrors_xml = &xml[start..end];
-                let mut mirrors: Mirrors = quick_xml::de::from_str(mirrors_xml).unwrap();
                 // 删除原来的 mirrors 部分
                 xml.replace_range(start..end, "");
-                mirrors.mirror.clear();
-
-                let mut mirror_str = quick_xml::se::to_string(&mirrors).unwrap();
-                mirror_str = mirror_str.replace("Mirrors", "mirrors");
-                xml.insert_str(start, mirror_str.as_str());
+                let mirror_str = "<mirrors>\n</mirrors>";
+                xml.insert_str(start, mirror_str);
                 let _ = write_config(self.get_default_profile_vec(), &xml);
             };
         }
