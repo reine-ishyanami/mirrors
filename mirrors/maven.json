@@ -1,0 +1,26 @@
+[
+    {
+        "id": "alimaven",
+        "name": "aliyun maven",
+        "mirrorOf": "*",
+        "url": "https://maven.aliyun.com/repository/public"
+    },
+    {
+        "id": "central",
+        "name": "Maven Central",
+        "mirrorOf": "*",
+        "url": "https://repo1.maven.org/maven2"
+    },
+    {
+        "id": "jcenter",
+        "name": "JCenter",
+        "mirrorOf": "*",
+        "url": "https://jcenter.bintray.com/"
+    },
+    {
+        "id": "google",
+        "name": "Google",
+        "mirrorOf": "*",
+        "url": "https://maven.google.com"
+    }
+]

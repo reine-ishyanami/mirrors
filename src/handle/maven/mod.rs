@@ -1,17 +1,15 @@
 mod object;
 
-use crate::{
-    command::ProcessArg,
-    utils::file_utils::{read_config, write_config},
-};
+use crate::utils::file_utils::{read_config, write_config};
 use anyhow::Result;
 use clap::arg;
 use object::{Mirror, Mirrors};
 use process_arg_derive::ProcessArg;
 
-use std::{env, path::PathBuf, sync::LazyLock, vec};
+use std::{env, fmt::Display, path::PathBuf, sync::LazyLock, vec};
 
 use super::{MirrorConfigurate, Reader};
+use select_mirror_derive::SelectMirror;
 
 const ENV_NAME: &str = "M2_HOME";
 
@@ -33,6 +31,16 @@ impl MavenMirror {
             mirror_of,
             url,
         }
+    }
+}
+
+impl Display for MavenMirror {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "id: {}, name: {}, mirror-of: {}, url: {}",
+            self.id, self.name, self.mirror_of, self.url
+        )
     }
 }
 
@@ -102,7 +110,7 @@ impl Reader for MavenMirror {
     }
 }
 
-#[derive(ProcessArg, Clone, Copy)]
+#[derive(ProcessArg, SelectMirror, Clone, Copy)]
 pub(crate) struct MavenPackageManager {}
 
 impl MirrorConfigurate for MavenPackageManager {
@@ -139,7 +147,13 @@ impl MirrorConfigurate for MavenPackageManager {
                     None
                 } else {
                     let mirrors_xml = &xml[start..end];
-                    let mirrors: Mirrors = quick_xml::de::from_str(mirrors_xml).unwrap();
+                    let mirrors: Mirrors = if let Ok(mirrors) = quick_xml::de::from_str(mirrors_xml)
+                    {
+                        mirrors
+                    } else {
+                        Mirrors { mirror: vec![] }
+                    };
+                    // 删除原来的 mirrors 部分
                     mirrors.mirror.first().cloned()
                 }
             }
@@ -148,7 +162,7 @@ impl MirrorConfigurate for MavenPackageManager {
     }
 
     fn get_mirrors(&self) -> Vec<MavenMirror> {
-        let mirrors = include_str!("../../../mirrors/mvn.json");
+        let mirrors = include_str!("../../../mirrors/maven.json");
         serde_json::from_str(mirrors).unwrap_or_default()
     }
 
@@ -177,7 +191,6 @@ impl MirrorConfigurate for MavenPackageManager {
                 // 删除原来的 mirrors 部分
                 xml.replace_range(start..end, "");
                 mirrors.mirror.retain(|m| m.id != mirror.id);
-
                 let mut mirror_str = quick_xml::se::to_string(&mirrors).unwrap();
                 mirror_str = mirror_str.replace("Mirrors", "mirrors");
                 xml.insert_str(start, mirror_str.as_str());

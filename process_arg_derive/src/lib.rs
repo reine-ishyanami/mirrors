@@ -12,13 +12,17 @@ pub fn process_macro_derive(input: TokenStream) -> TokenStream {
 
 fn impl_process_macro(ast: &DeriveInput) -> TokenStream {
     let name = &ast.ident;
-    let generics = &ast.generics;
     let gen = quote! {
-        impl  ProcessArg<#generics> for #name {
+        use crate::command::ProcessArg;
+
+        impl ProcessArg for #name {
             fn process(&self, subcs: &clap::ArgMatches, v: Option<serde_json::Value>) {
                 match subcs.subcommand() {
-                    Some(("config", args)) => {
+                    Some(("custom", args)) => {
                         self.set_mirror_by_args(args);
+                    }
+                    Some(("select", _)) => {
+                        self.select();
                     }
                     Some(("default", _)) => {
                         if let Some(v) = v {

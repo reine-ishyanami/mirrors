@@ -9,8 +9,13 @@ use crate::handle::{
     npm::NpmPackageManager, pip::PipPackageManager, MirrorConfigurate,
 };
 
+/// 选择内置镜像源
+pub trait SelectMirror: MirrorConfigurate {
+    fn select(&self);
+}
+
 /// 子命令处理命令行参数
-pub trait ProcessArg: MirrorConfigurate {
+pub trait ProcessArg: SelectMirror {
     fn process(&self, subcs: &clap::ArgMatches, v: Option<serde_json::Value>);
 }
 
@@ -32,9 +37,10 @@ macro_rules! parse_command {
                         Command::new($pm.name())
                             .args_conflicts_with_subcommands(true)
                             .flatten_help(true)
-                            .subcommand(Command::new("config").args(
+                            .subcommand(Command::new("custom").args(
                                 $pm.parse_args()
                             ))
+                            .subcommand(Command::new("select"))
                             .subcommand(Command::new("default"))
                             .subcommand(Command::new("reset"))
                             .subcommand(Command::new("get")),

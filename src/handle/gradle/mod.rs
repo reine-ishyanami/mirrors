@@ -1,10 +1,11 @@
-use crate::command::ProcessArg;
 use crate::utils::file_utils::{read_config, write_config};
 use anyhow::Result;
 use clap::arg;
 use process_arg_derive::ProcessArg;
+use select_mirror_derive::SelectMirror;
 use serde::{Deserialize, Serialize};
 use std::env;
+use std::fmt::Display;
 use std::str::FromStr;
 use std::{path::PathBuf, sync::LazyLock};
 
@@ -20,7 +21,7 @@ static DEFAULT_GRADLE_PROFILES: LazyLock<Vec<PathBuf>> = LazyLock::new(|| {
     vec![profile_path.join("init.gradle.kts")]
 });
 
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
 pub(crate) struct GradleMirror {
     maven: String,
     android: String,
@@ -34,6 +35,16 @@ impl GradleMirror {
             android,
             plugins,
         }
+    }
+}
+
+impl Display for GradleMirror {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            r#"{{"maven": "{}", "android": "{}", "plugins": "{}"}}"#,
+            self.maven, self.android, self.plugins
+        )
     }
 }
 
@@ -73,7 +84,7 @@ impl Reader for GradleMirror {
     }
 }
 
-#[derive(ProcessArg, Clone, Copy)]
+#[derive(ProcessArg, SelectMirror, Clone, Copy)]
 pub(crate) struct GradlePackageManager {}
 
 impl MirrorConfigurate for GradlePackageManager {

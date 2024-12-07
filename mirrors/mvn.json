@@ -1,8 +1,0 @@
-[
-    {
-        "id": "alimaven",
-        "name": "aliyun maven",
-        "mirrorOf": "*",
-        "url": "https://maven.aliyun.com/repository/public"
-    }
-]

@@ -2,5 +2,21 @@
     {
         "name": "rsproxy",
         "url": "https://rsproxy.cn/crates.io-index"
+    },
+    {
+        "name": "crates-io",
+        "url": "https://github.com/rust-lang/crates.io-index"
+    },
+    {
+        "name": "ustc",
+        "url": "https://mirrors.ustc.edu.cn/crates.io-index"
+    },
+    {
+        "name": "sjtu",
+        "url": "https://mirrors.sjtug.sjtu.edu.cn/git/crates.io-index/"
+    },
+    {
+        "name": "tuna",
+        "url": "https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git"
     }
 ]

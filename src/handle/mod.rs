@@ -24,7 +24,7 @@ pub(super) trait Reader: From<serde_json::Value> {
 
 /// 镜像源配置接口
 pub(super) trait MirrorConfigurate {
-    type R: Reader;
+    type R: Reader + ToString;
     ///
     /// 解析命令行参数
     ///

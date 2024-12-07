@@ -1,18 +1,16 @@
 mod object;
 
-use crate::{
-    command::ProcessArg,
-    utils::file_utils::{read_config, write_config},
-};
+use crate::utils::file_utils::{read_config, write_config};
 use anyhow::Result;
 use clap::arg;
 use object::CargoConfig;
 use process_arg_derive::ProcessArg;
+use select_mirror_derive::SelectMirror;
 use serde::{Deserialize, Serialize};
 use toml::Value;
 
 use super::{MirrorConfigurate, Reader};
-use std::{collections::HashMap, env, path::PathBuf, sync::LazyLock};
+use std::{collections::HashMap, env, fmt::Display, path::PathBuf, sync::LazyLock};
 
 const ENV_NAME: &str = "CARGO_HOME";
 
@@ -24,7 +22,7 @@ static DEFAULT_CARGO_PROFILES: LazyLock<Vec<PathBuf>> = LazyLock::new(|| {
     vec![profile_path.join("config.toml")]
 });
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub(crate) struct CargoMirror {
     name: String,
     url: String,
@@ -33,6 +31,12 @@ pub(crate) struct CargoMirror {
 impl CargoMirror {
     pub(crate) fn new(name: String, url: String) -> Self {
         Self { name, url }
+    }
+}
+
+impl Display for CargoMirror {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.name, self.url)
     }
 }
 
@@ -75,7 +79,7 @@ impl Reader for CargoMirror {
     }
 }
 
-#[derive(ProcessArg, Clone, Copy)]
+#[derive(ProcessArg, SelectMirror, Clone, Copy)]
 pub(crate) struct CargoPackageManager {}
 
 impl MirrorConfigurate for CargoPackageManager {

@@ -1,10 +1,10 @@
-use crate::command::ProcessArg;
 use anyhow::Result;
 use clap::arg;
 use ini::Ini;
 use process_arg_derive::ProcessArg;
+use select_mirror_derive::SelectMirror;
 use serde::{Deserialize, Serialize};
-use std::{path::PathBuf, sync::LazyLock};
+use std::{fmt::Display, path::PathBuf, sync::LazyLock};
 
 use super::{MirrorConfigurate, Reader};
 
@@ -18,7 +18,7 @@ static DEFAULT_PIP_PROFILES: LazyLock<Vec<PathBuf>> = LazyLock::new(|| {
     }]
 });
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub(crate) struct PipMirror {
     url: String,
     host: String,
@@ -35,6 +35,12 @@ impl PipMirror {
             .unwrap()
             .to_owned();
         Self { url, host }
+    }
+}
+
+impl Display for PipMirror {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.url)
     }
 }
 
@@ -69,7 +75,7 @@ impl Reader for PipMirror {
     }
 }
 
-#[derive(ProcessArg, Clone, Copy)]
+#[derive(ProcessArg, SelectMirror, Clone, Copy)]
 pub(crate) struct PipPackageManager {}
 
 impl MirrorConfigurate for PipPackageManager {

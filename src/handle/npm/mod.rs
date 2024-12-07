@@ -1,19 +1,17 @@
-use crate::{
-    command::ProcessArg,
-    utils::file_utils::{read_config, write_config},
-};
+use crate::utils::file_utils::{read_config, write_config};
 use anyhow::Result;
 use clap::arg;
 use process_arg_derive::ProcessArg;
+use select_mirror_derive::SelectMirror;
 use serde::{Deserialize, Serialize};
-use std::{path::PathBuf, sync::LazyLock};
+use std::{fmt::Display, path::PathBuf, sync::LazyLock};
 
 use super::{MirrorConfigurate, Reader};
 
 static DEFAULT_NPM_PROFILES: LazyLock<Vec<PathBuf>> =
     LazyLock::new(|| vec![dirs::home_dir().unwrap().join(".npmrc")]);
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub(crate) struct NpmMirror {
     url: String,
 }
@@ -21,6 +19,12 @@ pub(crate) struct NpmMirror {
 impl NpmMirror {
     pub fn new(url: String) -> Self {
         Self { url }
+    }
+}
+
+impl Display for NpmMirror {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.url)
     }
 }
 
@@ -59,7 +63,7 @@ impl Reader for NpmMirror {
     }
 }
 
-#[derive(ProcessArg, Clone, Copy)]
+#[derive(ProcessArg, SelectMirror, Clone, Copy)]
 pub(crate) struct NpmPackageManager {}
 
 impl MirrorConfigurate for NpmPackageManager {

@@ -2,5 +2,17 @@
     {
         "url": "http://pypi.douban.com/simple",
         "host": "pypi.douban.com"
+    },
+    {
+        "url": "https://pypi.tuna.tsinghua.edu.cn/simple",
+        "host": "pypi.tuna.tsinghua.edu.cn"
+    },
+    {
+        "url": "https://mirrors.aliyun.com/pypi/simple/",
+        "host": "mirrors.aliyun.com"
+    },
+    {
+        "url": "https://pypi.mirrors.ustc.edu.cn/simple/",
+        "host": "pypi.mirrors.ustc.edu.cn"
     }
 ]

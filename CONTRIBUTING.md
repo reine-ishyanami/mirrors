@@ -24,6 +24,6 @@
 
 2. `DEFAULT_XXX_PROFILES` 表示该包管理器对应配置文件路径，由于配置文件可能存在于多处，所以需要用数组表示，以数组中出现的顺序作为优先级。
 
-3. `mirrors/{包管理器名称}.json` 对应的序列化结构体，需要为此结构体创建 `new` 方法和实现 `new_config` trait.
+3. `mirrors/{包管理器名称}.json` 对应的序列化结构体，需要为此结构体创建 `new` 方法和实现 `Reader`, `From<serde_json::Value>`, `Display` trait, 并派生 `Debug`, `Deserialize`, `Serialize`, `Clone` trait.
 
-4. `XxxPackageManager` 结构体，需实现 `MirrorConfigurate` trait, 并派生 `ProcessArg`, `Clone`, `Copy`.
+5. `XxxPackageManager` 结构体，需实现 `MirrorConfigurate` trait, 并派生 `ProcessArg`, `SelectMirror`, `Clone`, `Copy`.

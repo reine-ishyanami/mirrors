@@ -1,5 +1,17 @@
 [
     {
         "url": "https://registry.npmmirror.com"
+    },
+    {
+        "url": "http://mirrors.cloud.tencent.com/npm/"
+    },
+    {
+        "url": "https://mirrors.huaweicloud.com/repository/npm/"
+    },
+    {
+        "url": "https://npm.aliyun.com"
+    },
+    {
+        "url": "https://registry.npmjs.org/"
     }
 ]
