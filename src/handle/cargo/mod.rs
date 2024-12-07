@@ -14,6 +14,8 @@ use toml::Value;
 use super::{MirrorConfigurate, Reader};
 use std::{collections::HashMap, env, path::PathBuf, sync::LazyLock};
 
+const ENV_NAME: &str = "CARGO_HOME";
+
 static DEFAULT_CARGO_PROFILES: LazyLock<Vec<PathBuf>> = LazyLock::new(|| {
     let profile_path = match env::var(ENV_NAME) {
         Ok(value) => PathBuf::from(value),
@@ -21,8 +23,6 @@ static DEFAULT_CARGO_PROFILES: LazyLock<Vec<PathBuf>> = LazyLock::new(|| {
     };
     vec![profile_path.join("config.toml")]
 });
-
-const ENV_NAME: &str = "CARGO_HOME";
 
 #[derive(Debug, Deserialize, Serialize)]
 pub(crate) struct CargoMirror {

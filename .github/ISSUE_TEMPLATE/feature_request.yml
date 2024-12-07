@@ -1,0 +1,36 @@
+name: 新功能请求
+description: 希望添加的新的包管理器工具
+title: '[FEATURE] '
+labels: enhancement
+body:
+  - type: input
+    id: package-manager-name
+    attributes:
+      label: 包管理器名称
+      description: 对应的包管理器名称
+      placeholder: cargo
+    validations:
+      required: true
+  - type: input
+    id: env-name
+    attributes:
+      label: 环境变量
+      description: 包管理器配置文件对应环境变量
+    validations:
+      required: false
+  - type: textarea
+    id: profile-template
+    attributes:
+      label: 配置文件模板
+      description: 填写配置文件模板内容
+    validations:
+      required: false
+  - type: checkboxes
+    id: could-pull-request
+    attributes:
+      label: 可以提供PR
+      description: 可以为此功能提供PR
+      options:
+      - label: 可以提供PR
+    validations:
+      required: true

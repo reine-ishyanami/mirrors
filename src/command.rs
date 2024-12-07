@@ -1,5 +1,5 @@
 use crate::handle::{
-    cargo::CargoPackageManager, gradle::GradlePackageManager, mvn::MavenPackageManager,
+    cargo::CargoPackageManager, gradle::GradlePackageManager, maven::MavenPackageManager,
     npm::NpmPackageManager, pip::PipPackageManager, MirrorConfigurate,
 };
 

@@ -1,0 +1,54 @@
+name: Bug 反馈
+description: 报告可能的 mirrors 异常行为
+title: '[BUG] '
+labels: bug
+body:
+  - type: input
+    id: system-version
+    attributes:
+      label: 系统版本
+      description: 操作系统版本
+      placeholder: Windows 11 24H2
+    validations:
+      required: true
+  - type: input
+    id: mirrors-version
+    attributes:
+      label: mirrors 版本
+      description: 可通过 -v 参数查看
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: package-manager-name
+    attributes:
+      label: 包管理器名称
+      description: 对应的包管理器名称
+      placeholder: cargo
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么?
+      description: 填写你认为的 mirrors 的异常行为
+    validations:
+      required: true
+  - type: textarea
+    id: how-reproduce
+    attributes:
+      label: 如何复现
+      description: 填写应当如何操作才能触发这个异常行为
+      placeholder: |
+        1. xxx
+        2. xxx
+        3. xxx
+    validations:
+      required: true
+  - type: textarea
+    id: what-expected
+    attributes:
+      label: 期望的结果?
+      description: 填写你认为 mirrors 应当执行的正常行为
+    validations:
+      required: true

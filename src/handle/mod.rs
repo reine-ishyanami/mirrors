@@ -7,7 +7,7 @@ pub mod apt;
 pub mod cargo;
 pub mod docker;
 pub mod gradle;
-pub mod mvn;
+pub mod maven;
 pub mod npm;
 pub mod pacman;
 pub mod pip;
