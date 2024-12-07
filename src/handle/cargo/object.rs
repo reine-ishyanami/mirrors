@@ -5,7 +5,9 @@ use toml::Value;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub(super) struct CargoConfig {
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
     pub(super) source: Source,
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
     pub(super) registries: Registryies,
     #[serde(flatten)]
     extra_fields: HashMap<String, Value>,

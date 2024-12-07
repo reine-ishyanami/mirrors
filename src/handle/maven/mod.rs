@@ -36,6 +36,22 @@ impl MavenMirror {
     }
 }
 
+impl From<serde_json::Value> for MavenMirror {
+    fn from(value: serde_json::Value) -> Self {
+        let id = value["id"].as_str();
+        let name = value["name"].as_str();
+        let mirror_of = value["mirrorOf"].as_str();
+        let url = value["url"].as_str();
+
+        Self::new(
+            id.unwrap_or_default().to_string(),
+            name.unwrap_or_default().to_string(),
+            mirror_of.unwrap_or_default().to_string(),
+            url.unwrap_or_default().to_string(),
+        )
+    }
+}
+
 impl Reader for MavenMirror {
     fn new_config(&self) -> Result<String> {
         let str = match read_config(DEFAULT_MAVEN_PROFILES.to_vec()) {
@@ -106,7 +122,7 @@ impl MirrorConfigurate for MavenPackageManager {
     }
 
     fn current_mirror(&self) -> Option<MavenMirror> {
-        match read_config(DEFAULT_MAVEN_PROFILES.to_vec()) {
+        match read_config(self.get_default_profile_vec()) {
             Ok((_, xml)) => {
                 // 截取 mirrors 部分进行反序列化
                 let start = xml.find("<mirrors>").unwrap_or_default();
@@ -129,7 +145,7 @@ impl MirrorConfigurate for MavenPackageManager {
         serde_json::from_str(mirrors).unwrap_or_default()
     }
 
-    fn set_mirror(&self, args: &clap::ArgMatches) {
+    fn set_mirror_by_args(&self, args: &clap::ArgMatches) {
         let id = args.get_one::<String>("id").cloned().unwrap_or_default();
         let name = args.get_one::<String>("name").cloned().unwrap_or_default();
         let mirror_of = args
@@ -138,13 +154,11 @@ impl MirrorConfigurate for MavenPackageManager {
             .unwrap_or_default();
         let url = args.get_one::<String>("url").cloned().unwrap_or_default();
         let mirror = MavenMirror::new(id, name, mirror_of, url);
-        if let Ok(xml) = mirror.new_config() {
-            let _ = write_config(DEFAULT_MAVEN_PROFILES.to_vec(), &xml);
-        }
+        self.set_mirror(mirror);
     }
 
     fn remove_mirror(&self, mirror: MavenMirror) {
-        if let Ok((_, xml)) = read_config(DEFAULT_MAVEN_PROFILES.to_vec()) {
+        if let Ok((_, xml)) = read_config(self.get_default_profile_vec()) {
             let mut xml = xml;
             // 截取 mirrors 部分进行反序列化
             let start = xml.find("<mirrors>").unwrap_or_default();
@@ -160,13 +174,13 @@ impl MirrorConfigurate for MavenPackageManager {
                 let mut mirror_str = quick_xml::se::to_string(&mirrors).unwrap();
                 mirror_str = mirror_str.replace("Mirrors", "mirrors");
                 xml.insert_str(start, mirror_str.as_str());
-                let _ = write_config(DEFAULT_MAVEN_PROFILES.to_vec(), &xml);
+                let _ = write_config(self.get_default_profile_vec(), &xml);
             }
         }
     }
 
     fn reset_mirrors(&self) {
-        if let Ok((_, xml)) = read_config(DEFAULT_MAVEN_PROFILES.to_vec()) {
+        if let Ok((_, xml)) = read_config(self.get_default_profile_vec()) {
             let mut xml = xml;
             // 截取 mirrors 部分进行反序列化
             let start = xml.find("<mirrors>").unwrap_or_default();
@@ -182,13 +196,17 @@ impl MirrorConfigurate for MavenPackageManager {
                 let mut mirror_str = quick_xml::se::to_string(&mirrors).unwrap();
                 mirror_str = mirror_str.replace("Mirrors", "mirrors");
                 xml.insert_str(start, mirror_str.as_str());
-                let _ = write_config(DEFAULT_MAVEN_PROFILES.to_vec(), &xml);
+                let _ = write_config(self.get_default_profile_vec(), &xml);
             };
         }
     }
 
     fn test_mirror(&self, _mirror: MavenMirror) -> bool {
         todo!()
+    }
+
+    fn get_default_profile_vec(&self) -> Vec<PathBuf> {
+        DEFAULT_MAVEN_PROFILES.to_vec()
     }
 }
 

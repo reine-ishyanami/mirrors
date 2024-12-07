@@ -15,10 +15,15 @@ fn impl_process_macro(ast: &DeriveInput) -> TokenStream {
     let generics = &ast.generics;
     let gen = quote! {
         impl  ProcessArg<#generics> for #name {
-            fn process(&self, subcs: &clap::ArgMatches) {
+            fn process(&self, subcs: &clap::ArgMatches, v: Option<serde_json::Value>) {
                 match subcs.subcommand() {
                     Some(("config", args)) => {
-                        self.set_mirror(args);
+                        self.set_mirror_by_args(args);
+                    }
+                    Some(("default", _)) => {
+                        if let Some(v) = v {
+                            self.set_mirror_by_value(v);
+                        }
                     }
                     Some(("reset", _)) => {
                         self.reset_mirrors();

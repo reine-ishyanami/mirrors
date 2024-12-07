@@ -24,6 +24,13 @@ impl NpmMirror {
     }
 }
 
+impl From<serde_json::Value> for NpmMirror {
+    fn from(value: serde_json::Value) -> Self {
+        let url = value["url"].as_str();
+        Self::new(url.unwrap_or_default().to_string())
+    }
+}
+
 impl Reader for NpmMirror {
     fn new_config(&self) -> Result<String> {
         let str = match read_config(DEFAULT_NPM_PROFILES.to_vec()) {
@@ -68,7 +75,7 @@ impl MirrorConfigurate for NpmPackageManager {
     }
 
     fn current_mirror(&self) -> Option<NpmMirror> {
-        match read_config(DEFAULT_NPM_PROFILES.to_vec()) {
+        match read_config(self.get_default_profile_vec()) {
             Ok((_, properties)) => properties
                 .lines()
                 .find(|line| line.starts_with("registry="))
@@ -82,16 +89,14 @@ impl MirrorConfigurate for NpmPackageManager {
         serde_json::from_str(mirrors).unwrap_or_default()
     }
 
-    fn set_mirror(&self, args: &clap::ArgMatches) {
+    fn set_mirror_by_args(&self, args: &clap::ArgMatches) {
         let url = args.get_one::<String>("url").cloned().unwrap_or_default();
         let mirror = NpmMirror::new(url);
-        if let Ok(properties) = mirror.new_config() {
-            let _ = write_config(DEFAULT_NPM_PROFILES.to_vec(), &properties);
-        }
+        self.set_mirror(mirror);
     }
 
     fn remove_mirror(&self, mirror: NpmMirror) {
-        if let Ok((_, properties)) = read_config(DEFAULT_NPM_PROFILES.to_vec()) {
+        if let Ok((_, properties)) = read_config(self.get_default_profile_vec()) {
             let mut new_properties = String::new();
             for line in properties.lines() {
                 if !line.contains(&mirror.url) {
@@ -99,12 +104,12 @@ impl MirrorConfigurate for NpmPackageManager {
                     new_properties.push('\n');
                 }
             }
-            let _ = write_config(DEFAULT_NPM_PROFILES.to_vec(), &properties);
+            let _ = write_config(self.get_default_profile_vec(), &new_properties);
         }
     }
 
     fn reset_mirrors(&self) {
-        if let Ok((_, properties)) = read_config(DEFAULT_NPM_PROFILES.to_vec()) {
+        if let Ok((_, properties)) = read_config(self.get_default_profile_vec()) {
             let mut new_properties = String::new();
             for line in properties.lines() {
                 if !line.starts_with("registry=") {
@@ -112,12 +117,16 @@ impl MirrorConfigurate for NpmPackageManager {
                     new_properties.push('\n');
                 }
             }
-            let _ = write_config(DEFAULT_NPM_PROFILES.to_vec(), &properties);
+            let _ = write_config(self.get_default_profile_vec(), &new_properties);
         }
     }
 
     fn test_mirror(&self, _mirror: NpmMirror) -> bool {
         todo!()
+    }
+
+    fn get_default_profile_vec(&self) -> Vec<PathBuf> {
+        DEFAULT_NPM_PROFILES.to_vec()
     }
 }
 

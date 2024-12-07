@@ -10,7 +10,7 @@
         "android": "https://maven.aliyun.com/repository/public",
         "plugins": "https://maven.aliyun.com/repository/gradle-plugin"
     },
-    "mvn": {
+    "maven": {
         "id": "ali",
         "name": "aliyun maven",
         "mirrorOf": "*",
@@ -19,6 +19,9 @@
     "npm": {
         "url": "https://registry.npmmirror.com"
     },
-    "pip": {},
+    "pip": {
+        "url": "http://pypi.douban.com/simple",
+        "host": "pypi.douban.com"
+    },
     "pacman": {}
 }

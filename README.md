@@ -5,12 +5,20 @@
 ## 用法
 
 ```bash
-# 查看指定包管理器当前镜像源
-mirrors Xxx get
+# 给所有系统支持的包管理器设置默认镜像源
+mirrors config
+# 查看所有系统支持的包管理器的当前镜像源
+mirrors list
+# 重置所有系统支持的包管理器镜像源
+mirrors reset
 # 设置指定包管理器镜像源
 mirrors Xxx config -x xx -y yy -z zz ...
+# 给指定包管理器设置默认配置的镜像源
+mirrors XXX default
 # 重置指定包管理器镜像源
 mirrors Xxx reset
+# 查看指定包管理器当前镜像源
+mirrors Xxx get
 ```
 
 ## 目前支持的包管理器

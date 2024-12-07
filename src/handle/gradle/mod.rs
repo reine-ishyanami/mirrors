@@ -37,6 +37,19 @@ impl GradleMirror {
     }
 }
 
+impl From<serde_json::Value> for GradleMirror {
+    fn from(value: serde_json::Value) -> Self {
+        let maven = value["maven"].as_str();
+        let android = value["android"].as_str();
+        let plugins = value["plugins"].as_str();
+        Self::new(
+            maven.unwrap_or_default().to_string(),
+            android.unwrap_or_default().to_string(),
+            plugins.unwrap_or_default().to_string(),
+        )
+    }
+}
+
 impl Reader for GradleMirror {
     fn new_config(&self) -> Result<String> {
         Ok(format!(
@@ -84,7 +97,7 @@ impl MirrorConfigurate for GradlePackageManager {
     }
 
     fn current_mirror(&self) -> Option<GradleMirror> {
-        match read_config(DEFAULT_GRADLE_PROFILES.to_vec()) {
+        match read_config(self.get_default_profile_vec()) {
             Ok((_, kts)) => {
                 let lines = kts.lines();
                 let mut maven = String::from_str("https://repo.maven.apache.org/maven2").unwrap();
@@ -141,7 +154,7 @@ impl MirrorConfigurate for GradlePackageManager {
         serde_json::from_str(mirrors).unwrap_or_default()
     }
 
-    fn set_mirror(&self, args: &clap::ArgMatches) {
+    fn set_mirror_by_args(&self, args: &clap::ArgMatches) {
         let maven = args.get_one::<String>("maven").cloned().unwrap_or_default();
         let android = args
             .get_one::<String>("android")
@@ -152,9 +165,7 @@ impl MirrorConfigurate for GradlePackageManager {
             .cloned()
             .unwrap_or_default();
         let mirror = GradleMirror::new(maven, android, plugins);
-        if let Ok(kts) = mirror.new_config() {
-            let _ = write_config(DEFAULT_GRADLE_PROFILES.to_vec(), &kts);
-        }
+        self.set_mirror(mirror);
     }
 
     fn remove_mirror(&self, mirror: GradleMirror) {
@@ -164,11 +175,15 @@ impl MirrorConfigurate for GradlePackageManager {
     }
 
     fn reset_mirrors(&self) {
-        let _ = write_config(DEFAULT_GRADLE_PROFILES.to_vec(), "");
+        let _ = write_config(self.get_default_profile_vec(), "");
     }
 
     fn test_mirror(&self, _mirror: GradleMirror) -> bool {
         todo!()
+    }
+
+    fn get_default_profile_vec(&self) -> Vec<PathBuf> {
+        DEFAULT_GRADLE_PROFILES.to_vec()
     }
 }
 

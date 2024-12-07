@@ -1,9 +1,7 @@
-mod object;
-
 use crate::command::ProcessArg;
 use anyhow::Result;
 use clap::arg;
-use object::PipConfig;
+use ini::Ini;
 use process_arg_derive::ProcessArg;
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, sync::LazyLock};
@@ -40,14 +38,25 @@ impl PipMirror {
     }
 }
 
+impl From<serde_json::Value> for PipMirror {
+    fn from(value: serde_json::Value) -> Self {
+        let url = value["url"].as_str();
+        Self::new(url.unwrap_or_default().to_string())
+    }
+}
+
 impl Reader for PipMirror {
     fn new_config(&self) -> Result<String> {
         let str = match read_config(DEFAULT_PIP_PROFILES.to_vec()) {
             Ok((_, conf)) => {
-                let mut old: PipConfig = toml::from_str(&conf).unwrap();
-                old.global.index_url = self.url.clone();
-                old.install.trusted_host = self.host.clone();
-                toml::to_string(&old)?
+                let mut ini = Ini::load_from_str(&conf)?;
+                ini.with_section(Some("global"))
+                    .set("index-url", self.url.clone());
+                ini.with_section(Some("install"))
+                    .set("trusted-host", self.host.clone());
+                let mut writer = Vec::new();
+                ini.write_to(&mut writer)?;
+                String::from_utf8(writer)?
             }
             Err(_) => {
                 format!(
@@ -74,9 +83,19 @@ impl MirrorConfigurate for PipPackageManager {
     }
 
     fn current_mirror(&self) -> Option<PipMirror> {
-        if let Ok((_, conf)) = read_config(DEFAULT_PIP_PROFILES.to_vec()) {
-            if let Ok(old) = toml::from_str::<PipConfig>(&conf) {
-                return Some(PipMirror::new(old.global.index_url));
+        if let Ok((_, conf)) = read_config(self.get_default_profile_vec()) {
+            if let Ok(ini) = Ini::load_from_str(&conf) {
+                let url = ini
+                    .section(Some("global"))
+                    .map(|i| i.get("index-url").unwrap_or_default())
+                    .unwrap_or_default();
+                let host = ini
+                    .section(Some("install"))
+                    .map(|i| i.get("trusted-host").unwrap_or_default())
+                    .unwrap_or_default();
+                if url.contains(host) && !host.is_empty() && !url.is_empty() {
+                    return Some(PipMirror::new(url.to_string()));
+                }
             }
         }
         None
@@ -87,40 +106,50 @@ impl MirrorConfigurate for PipPackageManager {
         serde_json::from_str(mirrors).unwrap_or_default()
     }
 
-    fn set_mirror(&self, args: &clap::ArgMatches) {
+    fn set_mirror_by_args(&self, args: &clap::ArgMatches) {
         let url = args.get_one::<String>("url").cloned().unwrap_or_default();
         let mirror = PipMirror::new(url);
-        if let Ok(new_config) = mirror.new_config() {
-            let _ = write_config(DEFAULT_PIP_PROFILES.to_vec(), &new_config);
-        }
+        self.set_mirror(mirror);
     }
 
     fn remove_mirror(&self, mirror: PipMirror) {
-        if let Ok((_, conf)) = read_config(DEFAULT_PIP_PROFILES.to_vec()) {
-            if let Ok(mut old) = toml::from_str::<PipConfig>(&conf) {
-                if old.global.index_url == mirror.url {
-                    old.global.index_url = "".to_string();
-                    old.install.trusted_host = "".to_string();
+        if let Ok((_, conf)) = read_config(self.get_default_profile_vec()) {
+            if let Ok(ref mut ini) = Ini::load_from_str(&conf) {
+                let url = ini
+                    .section(Some("global"))
+                    .map(|i| i.get("index-url").unwrap_or_default())
+                    .unwrap_or_default();
+                if url == mirror.url {
+                    ini.with_section(Some("global")).delete(&"index-url");
+                    ini.with_section(Some("install")).delete(&"trusted-host");
                 }
-                let new_config = toml::to_string(&old).unwrap();
-                let _ = write_config(DEFAULT_PIP_PROFILES.to_vec(), &new_config);
+                let mut writer = Vec::new();
+                ini.write_to(&mut writer).unwrap_or_default();
+                let new_config = String::from_utf8(writer).unwrap_or_default();
+                let _ = write_config(self.get_default_profile_vec(), &new_config);
             }
         }
     }
 
     fn reset_mirrors(&self) {
-        if let Ok((_, conf)) = read_config(DEFAULT_PIP_PROFILES.to_vec()) {
-            if let Ok(mut old) = toml::from_str::<PipConfig>(&conf) {
-                old.global.index_url = "".to_string();
-                old.install.trusted_host = "".to_string();
-                let conf = toml::to_string(&old).unwrap();
-                let _ = write_config(DEFAULT_PIP_PROFILES.to_vec(), &conf);
+        if let Ok((_, conf)) = read_config(self.get_default_profile_vec()) {
+            if let Ok(ref mut ini) = Ini::load_from_str(&conf) {
+                ini.with_section(Some("global")).delete(&"index-url");
+                ini.with_section(Some("install")).delete(&"trusted-host");
+                let mut writer = Vec::new();
+                ini.write_to(&mut writer).unwrap_or_default();
+                let new_config = String::from_utf8(writer).unwrap_or_default();
+                let _ = write_config(self.get_default_profile_vec(), &new_config);
             }
         }
     }
 
     fn test_mirror(&self, _mirror: PipMirror) -> bool {
         todo!()
+    }
+
+    fn get_default_profile_vec(&self) -> Vec<PathBuf> {
+        DEFAULT_PIP_PROFILES.to_vec()
     }
 }
 

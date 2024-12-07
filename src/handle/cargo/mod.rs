@@ -36,6 +36,14 @@ impl CargoMirror {
     }
 }
 
+impl From<serde_json::Value> for CargoMirror {
+    fn from(value: serde_json::Value) -> Self {
+        let name = value["name"].as_str();
+        let url = value["url"].as_str();
+        Self::new(name.unwrap().to_string(), url.unwrap().to_string())
+    }
+}
+
 impl Reader for CargoMirror {
     fn new_config(&self) -> Result<String> {
         if let Ok((_, toml)) = read_config(DEFAULT_CARGO_PROFILES.to_vec()) {
@@ -84,7 +92,7 @@ impl MirrorConfigurate for CargoPackageManager {
     }
 
     fn current_mirror(&self) -> Option<CargoMirror> {
-        if let Ok((_, toml)) = read_config(DEFAULT_CARGO_PROFILES.to_vec()) {
+        if let Ok((_, toml)) = read_config(self.get_default_profile_vec()) {
             if let Ok(old) = toml::from_str::<CargoConfig>(&toml) {
                 let name = old
                     .source
@@ -115,17 +123,15 @@ impl MirrorConfigurate for CargoPackageManager {
         serde_json::from_str(mirrors).unwrap_or_default()
     }
 
-    fn set_mirror(&self, args: &clap::ArgMatches) {
+    fn set_mirror_by_args(&self, args: &clap::ArgMatches) {
         let name = args.get_one::<String>("name").cloned().unwrap_or_default();
         let url = args.get_one::<String>("url").cloned().unwrap_or_default();
         let mirror = CargoMirror::new(name, url);
-        if let Ok(toml) = mirror.new_config() {
-            let _ = write_config(DEFAULT_CARGO_PROFILES.to_vec(), &toml);
-        }
+        self.set_mirror(mirror);
     }
 
     fn remove_mirror(&self, mirror: CargoMirror) {
-        if let Ok((_, toml)) = read_config(DEFAULT_CARGO_PROFILES.to_vec()) {
+        if let Ok((_, toml)) = read_config(self.get_default_profile_vec()) {
             if let Ok(mut old) = toml::from_str::<CargoConfig>(&toml) {
                 let name = old
                     .source
@@ -142,13 +148,13 @@ impl MirrorConfigurate for CargoPackageManager {
                 old.source.remove(&mirror.name);
                 old.registries.remove(&mirror.name);
                 let toml = toml::to_string(&old).unwrap();
-                let _ = write_config(DEFAULT_CARGO_PROFILES.to_vec(), &toml);
+                let _ = write_config(self.get_default_profile_vec(), &toml);
             }
         }
     }
 
     fn reset_mirrors(&self) {
-        if let Ok((_, toml)) = read_config(DEFAULT_CARGO_PROFILES.to_vec()) {
+        if let Ok((_, toml)) = read_config(self.get_default_profile_vec()) {
             if let Ok(mut old) = toml::from_str::<CargoConfig>(&toml) {
                 let new_source = old
                     .source
@@ -162,13 +168,17 @@ impl MirrorConfigurate for CargoPackageManager {
                 old.source = HashMap::from([("crates-io".into(), new_source)]);
                 old.registries.clear();
                 let toml = toml::to_string(&old).unwrap();
-                let _ = write_config(DEFAULT_CARGO_PROFILES.to_vec(), &toml);
+                let _ = write_config(self.get_default_profile_vec(), &toml);
             }
         }
     }
 
     fn test_mirror(&self, _mirror: CargoMirror) -> bool {
         todo!()
+    }
+
+    fn get_default_profile_vec(&self) -> Vec<PathBuf> {
+        DEFAULT_CARGO_PROFILES.to_vec()
     }
 }
 
