@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::handle::{
-    cargo::CargoPackageManager, gradle::GradlePackageManager, maven::MavenPackageManager,
-    npm::NpmPackageManager, pip::PipPackageManager, MirrorConfigurate,
+    cargo::CargoPackageManager, docker::DockerPackageManager, gradle::GradlePackageManager,
+    maven::MavenPackageManager, npm::NpmPackageManager, pip::PipPackageManager, MirrorConfigurate,
 };
 
 /// 选择内置镜像源
@@ -97,7 +97,9 @@ pub(crate) fn process() {
     let gradle = GradlePackageManager {};
     let npm = NpmPackageManager {};
     let pip = PipPackageManager {};
-    parse_command!(cargo, mvn, gradle, npm, pip);
+    let docker = DockerPackageManager {};
+
+    parse_command!(cargo, mvn, gradle, npm, pip, docker);
 }
 
 pub(crate) fn read_mix_config() -> MixConfig {

@@ -11,8 +11,10 @@ mirrors config
 mirrors list
 # 重置所有系统支持的包管理器镜像源
 mirrors reset
+# 设置指定包管理器自定义镜像源
+mirrors Xxx custom -x xx -y yy -z zz ...
 # 设置指定包管理器镜像源
-mirrors Xxx config -x xx -y yy -z zz ...
+mirrors Xxx select
 # 给指定包管理器设置默认配置的镜像源
 mirrors XXX default
 # 重置指定包管理器镜像源
@@ -25,7 +27,7 @@ mirrors Xxx get
 
 - [ ] apt
 - [x] cargo
-- [ ] docker
+- [x] docker (只支持Linux)
 - [x] gradle (如果原来有其他配置慎用)
 - [x] maven
 - [x] npm
