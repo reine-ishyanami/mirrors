@@ -16,11 +16,5 @@
         "name": "JCenter",
         "mirrorOf": "*",
         "url": "https://jcenter.bintray.com/"
-    },
-    {
-        "id": "google",
-        "name": "Google",
-        "mirrorOf": "*",
-        "url": "https://maven.google.com"
     }
 ]

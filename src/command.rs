@@ -26,8 +26,9 @@ macro_rules! parse_command {
         {
             use crate::utils::string_utils::uppercase_first_letter;
 
-            let cmd = Command::new("mir")
-                .about("Configure Package Manager Mirrors")
+            let cmd = Command::new(std::env!("CARGO_PKG_NAME"))
+                .about(std::env!("CARGO_PKG_DESCRIPTION"))
+                .version(std::env!("CARGO_PKG_VERSION"))
                 .subcommand_required(true)
                 .arg_required_else_help(true)
                 .allow_external_subcommands(true)
