@@ -26,6 +26,12 @@ pub(super) trait Reader: From<serde_json::Value> {
 pub(super) trait MirrorConfigurate {
     type R: Reader + ToString;
     ///
+    /// 是否支持
+    ///
+    fn support(&self) -> bool {
+        true
+    }
+    ///
     /// 解析命令行参数
     ///
     fn parse_args(&self) -> Vec<Arg>;

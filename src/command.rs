@@ -24,26 +24,57 @@ macro_rules! parse_command {
         $( $pm:expr ),*
     ) => {
         {
+            use crate::utils::string_utils::uppercase_first_letter;
+
             let cmd = Command::new("mir")
                 .about("Configure Package Manager Mirrors")
                 .subcommand_required(true)
                 .arg_required_else_help(true)
                 .allow_external_subcommands(true)
-                .subcommand(Command::new("config"))
-                .subcommand(Command::new("list"))
-                .subcommand(Command::new("reset"))
+                .subcommand(
+                    Command::new("config")
+                        .about("Configurate mirrors for all support package managers")
+                )
+                .subcommand(
+                    Command::new("list")
+                        .about("List current mirrors for all support package managers")
+                )
+                .subcommand(
+                    Command::new("reset")
+                        .about("Reset mirrors for all support package managers")
+                )
                 $(
                     .subcommand(
                         Command::new($pm.name())
+                            .about(
+                                if $pm.support() {
+                                    format!("Configure mirrors for {} package manager", $pm.name())
+                                } else {
+                                     format!("{} package manager is not supported", uppercase_first_letter($pm.name()))
+                                }
+                            )
                             .args_conflicts_with_subcommands(true)
                             .flatten_help(true)
-                            .subcommand(Command::new("custom").args(
-                                $pm.parse_args()
-                            ))
-                            .subcommand(Command::new("select"))
-                            .subcommand(Command::new("default"))
-                            .subcommand(Command::new("reset"))
-                            .subcommand(Command::new("get")),
+                            .subcommand(
+                                Command::new("custom")
+                                    .args($pm.parse_args())
+                            )
+                            .subcommand(
+                                Command::new("select")
+                                    .about(format!("Select a mirror for {} package manager", $pm.name()))
+                            )
+                            .subcommand(
+                                Command::new("default")
+                                    .about(format!("Set default mirror for {} package manager", $pm.name()))
+                            )
+                            .subcommand(
+                                Command::new("reset")
+                                    .about(format!("Reset mirrors for {} package manager", $pm.name()))
+                            )
+                            .subcommand(
+                                Command::new("get")
+                                    .about(format!("Get current mirror of {} package manager", $pm.name()))
+                            ),
                     )
                 )*;
 
@@ -51,37 +82,50 @@ macro_rules! parse_command {
             match cmd.get_matches().subcommand() {
                 Some(("config", _)) => {
                     $(
-                        let v = map.get($pm.name()).cloned();
-                        if let Some(v) = v {
-                            $pm.set_mirror_by_value(v);
-                            println!("{} mirror config updated", $pm.name());
+                        if $pm.support() {
+                            let v = map.get($pm.name()).cloned();
+                            if let Some(v) = v {
+                                $pm.set_mirror_by_value(v);
+                                println!("{} mirror config updated", $pm.name());
+                            }
                         }
                     )*
                 }
                 Some(("list", _)) => {
                     println!("==============================================");
                     $(
-                        let mirror = $pm.current_mirror();
-                        println!("{} mirror to \n {:#?}", $pm.name(), mirror);
-                        println!("==============================================");
+                        if $pm.support() {
+                            let mirror = $pm.current_mirror();
+                            println!("{} mirror to \n {:#?}", $pm.name(), mirror);
+                            println!("==============================================");
+                        }
                     )*
                 }
                 Some(("reset", _)) => {
                     $(
-                        $pm.reset_mirrors();
-                        println!("{} mirror has reset", $pm.name());
+                        if $pm.support() {
+                            $pm.reset_mirrors();
+                            println!("{} mirror has reset", $pm.name());
+                        }
                     )*
                 }
                 Some((cmd, arg)) => {
                     let mut matched = false;
+                    let mut support = true;
                     $(
                         let v = map.get($pm.name()).cloned();
                         if cmd == $pm.name() {
-                            matched = true;
-                            $pm.process(arg, v)
+                            if $pm.support() {
+                                matched = true;
+                                $pm.process(arg, v);
+                            } else {
+                                support = false;
+                            }
                         }
                     )*
-                    if matched == false {
+                    if !support {
+                        println!("{} package manager is not supported", uppercase_first_letter(cmd));
+                    } else if !matched {
                         println!("Unknown command: {}", cmd);
                     }
                 }

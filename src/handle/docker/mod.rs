@@ -188,6 +188,10 @@ mod os_specific {
     impl MirrorConfigurate for DockerPackageManager {
         type R = DockerMirror;
 
+        fn support(&self) -> bool {
+            false
+        }
+
         fn parse_args(&self) -> Vec<clap::Arg> {
             vec![arg!(-u --url <URL>).help("mirror url").required(true)]
         }
