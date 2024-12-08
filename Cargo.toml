@@ -1,6 +1,6 @@
 [package]
 name = "mirrors"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "A tool to manage mirrors"
 repository = "https://github.com/reine-ishyanami/mirrors.git"
