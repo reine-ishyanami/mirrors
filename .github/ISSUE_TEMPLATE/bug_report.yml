@@ -1,5 +1,5 @@
-name: Bug 反馈
-description: 报告可能的 mirrors 异常行为
+name: 问题反馈
+description: 报告软件存在的异常行为
 title: '[BUG] '
 labels: bug
 body:
@@ -12,26 +12,18 @@ body:
     validations:
       required: true
   - type: input
-    id: mirrors-version
+    id: software-version
     attributes:
-      label: mirrors 版本
+      label: 软件版本
       description: 可通过 -v 参数查看
       placeholder: 0.1.0
-    validations:
-      required: true
-  - type: input
-    id: package-manager-name
-    attributes:
-      label: 包管理器名称
-      description: 对应的包管理器名称
-      placeholder: cargo
     validations:
       required: true
   - type: textarea
     id: what-happened
     attributes:
       label: 发生了什么?
-      description: 填写你认为的 mirrors 的异常行为
+      description: 填写你认为的软件异常行为
     validations:
       required: true
   - type: textarea
@@ -49,6 +41,6 @@ body:
     id: what-expected
     attributes:
       label: 期望的结果?
-      description: 填写你认为 mirrors 应当执行的正常行为
+      description: 填写你认为软件应当执行的正常行为
     validations:
       required: true

@@ -1,28 +1,41 @@
 name: 新功能请求
-description: 希望添加的新的包管理器工具
+description: 希望软件添加新的功能或提供软件改进建议
 title: '[FEATURE] '
 labels: enhancement
 body:
   - type: input
-    id: package-manager-name
+    id: modify-type
     attributes:
-      label: 包管理器名称
-      description: 对应的包管理器名称
-      placeholder: cargo
+      label: 类型
+      description: 此issue对应需要进行修改的类型，如添加代码、修改文档、优化功能等
     validations:
       required: true
   - type: input
-    id: env-name
+    id: summary
     attributes:
-      label: 环境变量
-      description: 包管理器配置文件对应环境变量
+      label: 简要描述
+      description: 简要描述一下这个功能或改进建议
     validations:
-      required: false
+      required: true
   - type: textarea
-    id: profile-template
+    id: description
     attributes:
-      label: 配置文件模板
-      description: 填写配置文件模板内容
+      label: 详细描述
+      description: 充分描述一下这个功能或改进建议
+    validations:
+      required: true
+  - type: textarea
+    id: why-need-this
+    attributes:
+      label: 需求背景
+      description: 请描述一下这个功能或改进建议的需求背景，如解决什么问题、提升什么能力、提高什么效率等
+    validations:
+      required: true
+  - type: textarea
+    id: support-docs
+    attributes:
+      label: 文档支持
+      description: 如果可以提供相关文档或资料，请在此处说明
     validations:
       required: false
   - type: checkboxes
