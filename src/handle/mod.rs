@@ -78,8 +78,4 @@ pub(super) trait MirrorConfigurate {
     /// 重置镜像源
     ///
     fn reset_mirrors(&self);
-    ///
-    /// 测试镜像源
-    ///
-    fn test_mirror(&self, mirror: Self::R) -> bool;
 }

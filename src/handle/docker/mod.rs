@@ -7,11 +7,12 @@ use std::{
     sync::LazyLock,
 };
 
+use crate::utils::net_utils::test_connection;
 use clap::arg;
 use object::DockerConfig;
 use process_arg_derive::ProcessArg;
-use select_mirror_derive::SelectMirror;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 use crate::utils::file_utils::read_config;
 
@@ -19,6 +20,33 @@ use super::{write_config, MirrorConfigurate, Reader};
 use anyhow::Result;
 
 pub(crate) use os_specific::*;
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub(crate) struct DockerMirror {
+    url: String,
+    /// The delay time of the url, in milliseconds.
+    #[serde(default)]
+    url_delay: i128,
+}
+
+impl DockerMirror {
+    pub(crate) fn new(url: String) -> Self {
+        Self { url, url_delay: -1 }
+    }
+}
+
+impl Display for DockerMirror {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {}ms", self.url, self.url_delay)
+    }
+}
+
+impl From<serde_json::Value> for DockerMirror {
+    fn from(value: serde_json::Value) -> Self {
+        let url = value["url"].as_str();
+        Self::new(url.unwrap().to_string())
+    }
+}
 
 #[cfg(target_os = "linux")]
 mod os_specific {
@@ -29,30 +57,6 @@ mod os_specific {
         let path = PathBuf::from("/etc/docker/daemon.json");
         vec![path]
     });
-
-    #[derive(Debug, Deserialize, Serialize, Clone)]
-    pub(crate) struct DockerMirror {
-        url: String,
-    }
-
-    impl DockerMirror {
-        pub(crate) fn new(url: String) -> Self {
-            Self { url }
-        }
-    }
-
-    impl Display for DockerMirror {
-        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-            write!(f, "{}", self.url)
-        }
-    }
-
-    impl From<serde_json::Value> for DockerMirror {
-        fn from(value: serde_json::Value) -> Self {
-            let url = value["url"].as_str();
-            Self::new(url.unwrap().to_string())
-        }
-    }
 
     impl Reader for DockerMirror {
         fn new_config(&self) -> Result<String> {
@@ -87,7 +91,7 @@ mod os_specific {
             if let Ok((_, json)) = read_config(self.get_default_profile_vec()) {
                 if let Ok(old) = serde_json::from_str::<DockerConfig>(&json) {
                     if let Some(url) = old.registry_mirrors.first().cloned() {
-                        return Some(DockerMirror { url });
+                        return Some(DockerMirror::new(url));
                     }
                 }
             }
@@ -96,7 +100,18 @@ mod os_specific {
 
         fn get_mirrors(&self) -> Vec<Self::R> {
             let mirrors = include_str!("../../../mirrors/docker.json");
-            serde_json::from_str(mirrors).unwrap_or_default()
+            let mirrors: Vec<Self::R> = serde_json::from_str(mirrors).unwrap_or_default();
+            mirrors
+                .into_iter()
+                .map(|x| {
+                    let url_delay = if let Ok((_, delay)) = test_connection(x.url.clone()) {
+                        delay as i128
+                    } else {
+                        -1
+                    };
+                    Self::R { url_delay, ..x }
+                })
+                .collect()
         }
 
         fn set_mirror_by_args(&self, args: &clap::ArgMatches) {
@@ -128,10 +143,6 @@ mod os_specific {
                 }
             }
         }
-
-        fn test_mirror(&self, mirror: Self::R) -> bool {
-            todo!()
-        }
     }
 
     #[cfg(test)]
@@ -150,31 +161,9 @@ mod os_specific {
 #[cfg(not(target_os = "linux"))]
 mod os_specific {
 
+    use select_mirror_derive::SelectMirror;
+
     use super::*;
-
-    #[derive(Debug, Deserialize, Serialize, Clone)]
-    pub(crate) struct DockerMirror {
-        url: String,
-    }
-
-    impl DockerMirror {
-        pub(crate) fn new(url: String) -> Self {
-            Self { url }
-        }
-    }
-
-    impl Display for DockerMirror {
-        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-            write!(f, "{}", self.url)
-        }
-    }
-
-    impl From<serde_json::Value> for DockerMirror {
-        fn from(value: serde_json::Value) -> Self {
-            let url = value["url"].as_str();
-            Self::new(url.unwrap().to_string())
-        }
-    }
 
     impl Reader for DockerMirror {
         fn new_config(&self) -> Result<String> {
@@ -222,10 +211,6 @@ mod os_specific {
 
         fn reset_mirrors(&self) {
             unimplemented!("not support reset_mirrors for this platform")
-        }
-
-        fn test_mirror(&self, _mirror: Self::R) -> bool {
-            todo!()
         }
     }
 }

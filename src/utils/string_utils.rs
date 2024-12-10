@@ -1,3 +1,6 @@
+///
+/// 单词首字母大写
+///
 pub fn uppercase_first_letter(s: &str) -> String {
     let mut c = s.chars();
     match c.next() {

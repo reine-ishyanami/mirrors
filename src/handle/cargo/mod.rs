@@ -1,6 +1,9 @@
 mod object;
 
-use crate::utils::file_utils::{read_config, write_config};
+use crate::utils::{
+    file_utils::{read_config, write_config},
+    net_utils::test_connection,
+};
 use anyhow::Result;
 use clap::arg;
 use object::CargoConfig;
@@ -26,17 +29,30 @@ static DEFAULT_CARGO_PROFILES: LazyLock<Vec<PathBuf>> = LazyLock::new(|| {
 pub(crate) struct CargoMirror {
     name: String,
     url: String,
+    /// The delay time of the url, in milliseconds.
+    #[serde(default)]
+    url_delay: i128,
 }
 
 impl CargoMirror {
     pub(crate) fn new(name: String, url: String) -> Self {
-        Self { name, url }
+        // 测试延迟
+        let url_delay = if let Ok((_, delay)) = test_connection(url.clone()) {
+            delay as i128
+        } else {
+            -1
+        };
+        Self {
+            name,
+            url,
+            url_delay,
+        }
     }
 }
 
 impl Display for CargoMirror {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {}", self.name, self.url)
+        write!(f, "{}: {} {}ms", self.name, self.url, self.url_delay)
     }
 }
 
@@ -116,7 +132,7 @@ impl MirrorConfigurate for CargoPackageManager {
                     .as_str()
                     .unwrap()
                     .to_string();
-                return Some(CargoMirror { name, url });
+                return Some(CargoMirror::new(name, url));
             }
         }
         None
@@ -124,7 +140,18 @@ impl MirrorConfigurate for CargoPackageManager {
 
     fn get_mirrors(&self) -> Vec<CargoMirror> {
         let mirrors = include_str!("../../../mirrors/cargo.json");
-        serde_json::from_str(mirrors).unwrap_or_default()
+        let mirrors: Vec<Self::R> = serde_json::from_str(mirrors).unwrap_or_default();
+        mirrors
+            .into_iter()
+            .map(|x| {
+                let url_delay = if let Ok((_, delay)) = test_connection(x.url.clone()) {
+                    delay as i128
+                } else {
+                    -1
+                };
+                Self::R { url_delay, ..x }
+            })
+            .collect()
     }
 
     fn set_mirror_by_args(&self, args: &clap::ArgMatches) {
@@ -175,10 +202,6 @@ impl MirrorConfigurate for CargoPackageManager {
                 let _ = write_config(self.get_default_profile_vec(), &toml);
             }
         }
-    }
-
-    fn test_mirror(&self, _mirror: CargoMirror) -> bool {
-        todo!()
     }
 
     fn get_default_profile_vec(&self) -> Vec<PathBuf> {

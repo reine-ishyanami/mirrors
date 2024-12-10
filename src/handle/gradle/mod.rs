@@ -1,4 +1,5 @@
 use crate::utils::file_utils::{read_config, write_config};
+use crate::utils::net_utils::test_connection;
 use anyhow::Result;
 use clap::arg;
 use process_arg_derive::ProcessArg;
@@ -26,6 +27,13 @@ pub(crate) struct GradleMirror {
     maven: String,
     android: String,
     plugins: String,
+    /// The delay time of the url, in milliseconds.
+    #[serde(default)]
+    maven_delay: i128,
+    #[serde(default)]
+    android_delay: i128,
+    #[serde(default)]
+    plugins_delay: i128,
 }
 
 impl GradleMirror {
@@ -34,6 +42,9 @@ impl GradleMirror {
             maven,
             android,
             plugins,
+            maven_delay: -1,
+            android_delay: -1,
+            plugins_delay: -1,
         }
     }
 }
@@ -42,8 +53,13 @@ impl Display for GradleMirror {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            r#"{{"maven": "{}", "android": "{}", "plugins": "{}"}}"#,
-            self.maven, self.android, self.plugins
+            "maven: {} {}ms \nandroid: {} {}ms \nplugins: {} {}ms",
+            self.maven,
+            self.maven_delay,
+            self.android,
+            self.android_delay,
+            self.plugins,
+            self.plugins_delay
         )
     }
 }
@@ -150,11 +166,7 @@ impl MirrorConfigurate for GradlePackageManager {
                             .to_string();
                     }
                 }
-                Some(GradleMirror {
-                    maven,
-                    android,
-                    plugins,
-                })
+                Some(GradleMirror::new(maven, android, plugins))
             }
             Err(_) => None,
         }
@@ -162,7 +174,33 @@ impl MirrorConfigurate for GradlePackageManager {
 
     fn get_mirrors(&self) -> Vec<GradleMirror> {
         let mirrors = include_str!("../../../mirrors/gradle.json");
-        serde_json::from_str(mirrors).unwrap_or_default()
+        let mirrors: Vec<Self::R> = serde_json::from_str(mirrors).unwrap_or_default();
+        mirrors
+            .into_iter()
+            .map(|x| {
+                let maven_delay = if let Ok((_, delay)) = test_connection(x.maven.clone()) {
+                    delay as i128
+                } else {
+                    -1
+                };
+                let android_delay = if let Ok((_, delay)) = test_connection(x.android.clone()) {
+                    delay as i128
+                } else {
+                    -1
+                };
+                let plugins_delay = if let Ok((_, delay)) = test_connection(x.plugins.clone()) {
+                    delay as i128
+                } else {
+                    -1
+                };
+                Self::R {
+                    maven_delay,
+                    android_delay,
+                    plugins_delay,
+                    ..x
+                }
+            })
+            .collect()
     }
 
     fn set_mirror_by_args(&self, args: &clap::ArgMatches) {
@@ -187,10 +225,6 @@ impl MirrorConfigurate for GradlePackageManager {
 
     fn reset_mirrors(&self) {
         let _ = write_config(self.get_default_profile_vec(), "");
-    }
-
-    fn test_mirror(&self, _mirror: GradleMirror) -> bool {
-        todo!()
     }
 
     fn get_default_profile_vec(&self) -> Vec<PathBuf> {

@@ -8,7 +8,10 @@ use std::{fmt::Display, path::PathBuf, sync::LazyLock};
 
 use super::{MirrorConfigurate, Reader};
 
-use crate::utils::file_utils::{read_config, write_config};
+use crate::utils::{
+    file_utils::{read_config, write_config},
+    net_utils::test_connection,
+};
 
 static DEFAULT_PIP_PROFILES: LazyLock<Vec<PathBuf>> = LazyLock::new(|| {
     vec![if cfg!(target_os = "windows") {
@@ -22,11 +25,15 @@ static DEFAULT_PIP_PROFILES: LazyLock<Vec<PathBuf>> = LazyLock::new(|| {
 pub(crate) struct PipMirror {
     url: String,
     host: String,
+    /// The delay time of the url, in milliseconds.
+    #[serde(default)]
+    url_delay: i128,
 }
 
 impl PipMirror {
     pub fn new(url: String) -> Self {
         let host = url
+            .clone()
             .split("://")
             .last()
             .unwrap()
@@ -34,13 +41,17 @@ impl PipMirror {
             .next()
             .unwrap()
             .to_owned();
-        Self { url, host }
+        Self {
+            url,
+            host,
+            url_delay: -1,
+        }
     }
 }
 
 impl Display for PipMirror {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.url)
+        write!(f, "{} {}ms", self.url, self.url_delay)
     }
 }
 
@@ -107,9 +118,20 @@ impl MirrorConfigurate for PipPackageManager {
         None
     }
 
-    fn get_mirrors(&self) -> Vec<PipMirror> {
+    fn get_mirrors(&self) -> Vec<Self::R> {
         let mirrors = include_str!("../../../mirrors/pip.json");
-        serde_json::from_str(mirrors).unwrap_or_default()
+        let mirrors: Vec<Self::R> = serde_json::from_str(mirrors).unwrap_or_default();
+        mirrors
+            .into_iter()
+            .map(|x| {
+                let url_delay = if let Ok((_, delay)) = test_connection(x.url.clone()) {
+                    delay as i128
+                } else {
+                    -1
+                };
+                Self::R { url_delay, ..x }
+            })
+            .collect()
     }
 
     fn set_mirror_by_args(&self, args: &clap::ArgMatches) {
@@ -148,10 +170,6 @@ impl MirrorConfigurate for PipPackageManager {
                 let _ = write_config(self.get_default_profile_vec(), &new_config);
             }
         }
-    }
-
-    fn test_mirror(&self, _mirror: PipMirror) -> bool {
-        todo!()
     }
 
     fn get_default_profile_vec(&self) -> Vec<PathBuf> {

@@ -1,12 +1,15 @@
 mod object;
 
-use crate::utils::file_utils::{read_config, write_config};
+use crate::utils::{
+    file_utils::{read_config, write_config},
+    net_utils::test_connection,
+};
 use anyhow::Result;
 use clap::arg;
 use object::{Mirror, Mirrors};
 use process_arg_derive::ProcessArg;
 
-use std::{env, fmt::Display, path::PathBuf, sync::LazyLock, vec};
+use std::{env, fmt::Display, path::PathBuf, sync::LazyLock};
 
 use super::{MirrorConfigurate, Reader};
 use select_mirror_derive::SelectMirror;
@@ -30,6 +33,7 @@ impl MavenMirror {
             name,
             mirror_of,
             url,
+            url_delay: -1,
         }
     }
 }
@@ -38,8 +42,8 @@ impl Display for MavenMirror {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "id: {}, name: {}, mirror-of: {}, url: {}",
-            self.id, self.name, self.mirror_of, self.url
+            "id: {} \nname: {} \nmirror-of: {} \nurl: {} {}ms",
+            self.id, self.name, self.mirror_of, self.url, self.url_delay
         )
     }
 }
@@ -163,7 +167,18 @@ impl MirrorConfigurate for MavenPackageManager {
 
     fn get_mirrors(&self) -> Vec<MavenMirror> {
         let mirrors = include_str!("../../../mirrors/maven.json");
-        serde_json::from_str(mirrors).unwrap_or_default()
+        let mirrors: Vec<Self::R> = serde_json::from_str(mirrors).unwrap_or_default();
+        mirrors
+            .into_iter()
+            .map(|x| {
+                let url_delay = if let Ok((_, delay)) = test_connection(x.url.clone()) {
+                    delay as i128
+                } else {
+                    -1
+                };
+                Self::R { url_delay, ..x }
+            })
+            .collect()
     }
 
     fn set_mirror_by_args(&self, args: &clap::ArgMatches) {
@@ -214,10 +229,6 @@ impl MirrorConfigurate for MavenPackageManager {
                 let _ = write_config(self.get_default_profile_vec(), &xml);
             };
         }
-    }
-
-    fn test_mirror(&self, _mirror: MavenMirror) -> bool {
-        todo!()
     }
 
     fn get_default_profile_vec(&self) -> Vec<PathBuf> {

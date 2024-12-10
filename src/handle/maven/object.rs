@@ -13,4 +13,7 @@ pub(crate) struct Mirror {
     #[serde(rename = "mirrorOf")]
     pub(super) mirror_of: String,
     pub(super) url: String,
+    /// The delay time of the url, in milliseconds.
+    #[serde(default)]
+    pub(super) url_delay: i128,
 }
