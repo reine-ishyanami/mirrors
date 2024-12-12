@@ -33,6 +33,8 @@ mirrors Xxx get
 - [x] npm
 - [ ] pacman
 - [x] pip
+- [ ] dnf
+- [ ] homebrew
 
 ## 未来可能支持的功能
 
