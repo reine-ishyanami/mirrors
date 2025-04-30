@@ -11,6 +11,7 @@ use crate::utils::net::test_connection;
 use clap::arg;
 use object::DockerConfig;
 use process_arg_derive::ProcessArg;
+use select_mirror_derive::SelectMirror;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -74,7 +75,7 @@ mod os_specific {
     }
 
     #[derive(ProcessArg, SelectMirror, Clone, Copy)]
-    pub(crate) struct DockerPackageManager {}
+    pub(crate) struct DockerPackageManager;
 
     impl MirrorConfigurate for DockerPackageManager {
         type R = DockerMirror;
@@ -160,8 +161,6 @@ mod os_specific {
 
 #[cfg(not(target_os = "linux"))]
 mod os_specific {
-
-    use select_mirror_derive::SelectMirror;
 
     use super::*;
 
