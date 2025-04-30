@@ -1,6 +1,6 @@
 use crate::utils::{
-    file_utils::{read_config, write_config},
-    net_utils::test_connection,
+    file::{read_config, write_config},
+    net::test_connection,
 };
 use anyhow::Result;
 use clap::arg;
@@ -70,7 +70,7 @@ impl Reader for NpmMirror {
 }
 
 #[derive(ProcessArg, SelectMirror, Clone, Copy)]
-pub(crate) struct NpmPackageManager {}
+pub(crate) struct NpmPackageManager;
 
 impl MirrorConfigurate for NpmPackageManager {
     type R = NpmMirror;

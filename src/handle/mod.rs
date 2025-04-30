@@ -6,7 +6,7 @@ use anyhow::Result;
 use clap::Arg;
 use serde_json::Value;
 
-use crate::utils::file_utils::write_config;
+use crate::utils::file::write_config;
 
 pub mod apt;
 pub mod cargo;

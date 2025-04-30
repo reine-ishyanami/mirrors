@@ -1,5 +1,5 @@
-use crate::utils::file_utils::{read_config, write_config};
-use crate::utils::net_utils::test_connection;
+use crate::utils::file::{read_config, write_config};
+use crate::utils::net::test_connection;
 use anyhow::Result;
 use clap::arg;
 use process_arg_derive::ProcessArg;
@@ -101,7 +101,7 @@ impl Reader for GradleMirror {
 }
 
 #[derive(ProcessArg, SelectMirror, Clone, Copy)]
-pub(crate) struct GradlePackageManager {}
+pub(crate) struct GradlePackageManager;
 
 impl MirrorConfigurate for GradlePackageManager {
     type R = GradleMirror;

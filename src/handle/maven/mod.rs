@@ -1,8 +1,8 @@
 mod object;
 
 use crate::utils::{
-    file_utils::{read_config, write_config},
-    net_utils::test_connection,
+    file::{read_config, write_config},
+    net::test_connection,
 };
 use anyhow::Result;
 use clap::arg;
@@ -115,7 +115,7 @@ impl Reader for MavenMirror {
 }
 
 #[derive(ProcessArg, SelectMirror, Clone, Copy)]
-pub(crate) struct MavenPackageManager {}
+pub(crate) struct MavenPackageManager;
 
 impl MirrorConfigurate for MavenPackageManager {
     type R = MavenMirror;

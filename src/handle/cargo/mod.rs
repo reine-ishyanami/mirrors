@@ -1,8 +1,8 @@
 mod object;
 
 use crate::utils::{
-    file_utils::{read_config, write_config},
-    net_utils::test_connection,
+    file::{read_config, write_config},
+    net::test_connection,
 };
 use anyhow::Result;
 use clap::arg;
@@ -96,7 +96,7 @@ impl Reader for CargoMirror {
 }
 
 #[derive(ProcessArg, SelectMirror, Clone, Copy)]
-pub(crate) struct CargoPackageManager {}
+pub(crate) struct CargoPackageManager;
 
 impl MirrorConfigurate for CargoPackageManager {
     type R = CargoMirror;

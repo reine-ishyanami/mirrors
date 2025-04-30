@@ -9,8 +9,8 @@ use std::{fmt::Display, path::PathBuf, sync::LazyLock};
 use super::{MirrorConfigurate, Reader};
 
 use crate::utils::{
-    file_utils::{read_config, write_config},
-    net_utils::test_connection,
+    file::{read_config, write_config},
+    net::test_connection,
 };
 
 static DEFAULT_PIP_PROFILES: LazyLock<Vec<PathBuf>> = LazyLock::new(|| {
@@ -87,7 +87,7 @@ impl Reader for PipMirror {
 }
 
 #[derive(ProcessArg, SelectMirror, Clone, Copy)]
-pub(crate) struct PipPackageManager {}
+pub(crate) struct PipPackageManager;
 
 impl MirrorConfigurate for PipPackageManager {
     type R = PipMirror;
